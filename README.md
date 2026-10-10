@@ -3,11 +3,13 @@
 Pipeline de dados de uma loja online, da ingestão à proteção, construído em cinco entregas semanais
 (tags `entrega-1` a `entrega-5`).
 
-## Grupo
+## Equipe · Turma 4ESPV
 
-- _Nome completo · RA_
-- _Nome completo · RA_
-- _Nome completo · RA_
+| Integrante | RM |
+|---|---|
+| Camila do Prado Padalino | 98316 |
+| Gabriel Teixeira Machado | 551570 |
+| Felipe Cavalcante Bressane | 97688 |
 
 ## Escolhas do grupo
 
