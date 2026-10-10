@@ -15,14 +15,16 @@ dbutils.widgets.text("catalogo", "workspace", "Catálogo")
 CATALOGO = dbutils.widgets.get("catalogo")
 
 SCHEMAS = {
-    "lab_origem":   "Origem da loja: o 'banco transacional' que o pipeline lê",
+    "lab_origem":   "Origem da loja: o banco transacional que o pipeline lê",
     "lab_controle": "Estado do pipeline: marcas-d'água, offsets, execuções",
     "lab_bronze":   "Camada bronze: cópia fiel da origem",
     "lab_silver":   "Camada silver: validada e protegida",
     "lab_gold":     "Camada gold: consumo agregado",
 }
 for nome, comentario in SCHEMAS.items():
-    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOGO}.{nome} COMMENT '{comentario}'")
+    # escapa a aspa simples (marcas-d'água) para não fechar a string do SQL
+    texto = comentario.replace("\\", "\\\\").replace("'", "\\'")
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOGO}.{nome} COMMENT '{texto}'")
 
 ORIGEM = f"{CATALOGO}.lab_origem"
 print("Schemas prontos em", CATALOGO)
