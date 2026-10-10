@@ -1,0 +1,7 @@
+id,nome,email,cpf,nascimento,cidade,atualizado_em
+1,Ana Lima,ana.lima@example.com,111.111.111-11,1990-03-12,Santos,2026-10-01T09:00:00
+2,Bruno Reis,bruno.reis@example.com,222.222.222-22,1985-07-30,Campinas,2026-10-01T09:05:00
+3,Carla Nunes,carla.nunes@example.com,333.333.333-33,1998-11-02,Santos,2026-10-01T09:10:00
+4,Diego Prado,diego.prado@example.com,444.444.444-44,1979-01-21,Sorocaba,2026-10-01T09:15:00
+5,Elisa Moura,elisa.moura@example.com,555.555.555-55,2001-05-09,Campinas,2026-10-01T09:20:00
+6,Fábio Teles,fabio.teles@example.com,666.666.666-66,1993-09-17,Santos,2026-10-01T09:25:00

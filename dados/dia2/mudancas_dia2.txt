@@ -1,0 +1,12 @@
+Apliquem na origem, nesta ordem. Em cada alteração ou inserção,
+gravem em atualizado_em o horário indicado.
+
+1  ALTERAÇÃO  pedidos   id 105  status: pendente -> pago         2026-10-02T08:10:00
+2  ALTERAÇÃO  clientes  id 3    email: carla.n@example.com       2026-10-02T08:20:00
+3  INSERÇÃO   clientes  id 7    Gabi Rocha, gabi.rocha@example.com,
+                                777.777.777-77, 1996-02-25,
+                                Sorocaba                         2026-10-02T08:30:00
+4  INSERÇÃO   pedidos   id 109  cliente 7, 5600, pago, sem observação,
+                                criado em 2026-10-02T08:40:00    2026-10-02T08:40:00
+5  EXCLUSÃO   clientes  id 5    a cliente pediu a eliminação dos dados;
+                                o pedido 106 permanece
