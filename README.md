@@ -21,7 +21,8 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 | Camadas de destino | Tabelas Delta em `lab_bronze`, `lab_silver` e `lab_gold` | Mesmo catálogo, schemas separados por camada |
 | Estado do pipeline | Schema `lab_controle` (marcas-d'água, offsets) | Estado fora do código |
 | Desenho | _a definir: diagrams.net, Excalidraw ou Mermaid_ | |
-| Trilha de captura de mudanças | _a definir na Missão 2_ | |
+| Trilha de captura de mudanças | **Trilha B**: Change Data Feed do Delta nas tabelas da origem | O próprio banco registra cada mudança na ordem do commit; nenhuma mudança escapa, mesmo feita por fora do aplicativo |
+| Log de mudanças | Tabela `lab_log.mudancas` (só anexa) | Sequência, tabela, operação, chave e dados de cada evento |
 
 ## Como rodar do zero
 
@@ -37,6 +38,17 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    Para refazer do zero: rodar `00_criar_origem` e depois `01_carga_incremental` com o widget
    "Apagar bronze e estado antes?" em `sim`.
 
+4. Missão 2, nesta ordem:
+   1. `ingestao/00_criar_origem` (origem de volta ao dia 1)
+   2. `ingestao/02a_preparar_captura` (liga o CDF, bronze no dia 1, log vazio)
+   3. `ingestao/01b_aplicar_dia2` (as 5 mudanças do dia 2)
+   4. `ingestao/02_sincronizar` (captura 5 eventos e aplica na bronze)
+   5. `ingestao/02_sincronizar` com "Reaplicar desde o início?" = `sim` (mesmos números)
+   6. `ingestao/02c_verificar_missao2` (confere e grava `evidencias/missao2.txt`)
+
+   A partir da Missão 2, `clientes` e `pedidos` chegam à bronze pelo log. A carga por marca-d'água
+   (`01_carga_incremental`) fica como registro da Missão 1 e segue valendo para a `navegacao` até a Missão 3.
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -51,6 +63,20 @@ _Os próximos passos entram a cada missão._
 - **Limite conhecido.** A marca-d'água compara `atualizado_em > marca`. Uma linha gravada na origem com
   horário igual ou anterior ao da marca, depois da carga, não seria lida. E um `DELETE` não deixa linha
   para ler: a cliente 5 continua na bronze. A Missão 2 resolve com o log de mudanças.
+- **Trilha B (CDF).** `02a_preparar_captura` liga `delta.enableChangeDataFeed` em `clientes` e `pedidos`
+  e guarda a versão Delta atual como offset da captura. `02_sincronizar` lê `table_changes()` a partir
+  da versão seguinte, descarta as imagens "antes" das alterações (`update_preimage`) e anexa ao log
+  na ordem do commit. A Trilha A (tabela `mudancas` preenchida pelo programa) foi descartada porque
+  qualquer mudança feita por fora do programa escaparia do log.
+- **Dois offsets, dois leitores.** A captura guarda a última versão lida de cada tabela; a bronze guarda
+  o último `seq` aplicado. Cair e voltar é retomar dali.
+- **Aplicar em ordem, de forma idempotente.** Para cada chave vale o último evento do trecho lido; o
+  `MERGE` apaga (exclusão), substitui (alteração) ou insere (inserção). Reaplicar o log inteiro deixa a
+  bronze igual.
+- **Exclusão chega ao destino.** O evento de exclusão da cliente 5 apaga a linha da bronze. O pedido 106
+  continua, sem chave estrangeira. O mesmo caminho atende ao pedido de eliminação da Missão 8.
+- **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
+  Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
 ## Estrutura
 
