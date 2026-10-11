@@ -1,0 +1,7 @@
+Missão 0 · origem no estado do dia 1 · 2026-10-10 22:11
+catálogo: workspace · schema: lab_origem
+clientes: 6 (esperado 6)
+pedidos:  8 (esperado 8)
+eventos de navegação: 8 (esperado 8)
+receita paga: R$ 655,00 (esperado R$ 655,00)
+resultado: OK, números conferem

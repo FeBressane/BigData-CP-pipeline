@@ -1,0 +1,21 @@
+Missão 1 · carga incremental · verificado em 2026-10-10 22:19
+
+[OK] 1. 1ª execução: 6 clientes, 8 pedidos e 8 eventos na bronze
+      execução 1: 6 / 8 / 8
+[OK] 2. 2ª execução sem mudança: lê 0 linhas e os totais continuam 6, 8 e 8
+      execução 2: leu 0, totais 6 / 8 / 8
+[OK] 3. Depois do dia 2: lê 4 linhas (pedidos 105 e 109, clientes 3 e 7)
+      execução 3: clientes 2, pedidos 2, navegação 0
+[OK] 4. Bronze: 7 clientes, 9 pedidos, receita paga de R$ 750,90
+      agora: 7 clientes, 9 pedidos, R$ 750,90
+[OK] 5. Cliente 5 excluída na origem e ainda presente na bronze
+      origem: 0 linha, bronze: 1 linha
+
+Execuções registradas em lab_controle.execucoes:
+  execução 1: leu 22 (clientes 6, pedidos 8, navegação 8) -> bronze 6 / 8 / 8, receita R$ 655,00
+  execução 2: leu 0 (clientes 0, pedidos 0, navegação 0) -> bronze 6 / 8 / 8, receita R$ 655,00
+  execução 2: leu 0 (clientes 0, pedidos 0, navegação 0) -> bronze 6 / 8 / 8, receita R$ 655,00
+  execução 3: leu 4 (clientes 2, pedidos 2, navegação 0) -> bronze 7 / 9 / 8, receita R$ 750,90
+
+Observação: a cliente 5 continua na bronze porque a marca-d'água só enxerga linhas que existem.
+Um DELETE não deixa linha para ler. É o ponto de partida da Missão 2 (log de mudanças).
