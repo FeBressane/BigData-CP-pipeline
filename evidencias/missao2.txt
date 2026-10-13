@@ -1,0 +1,24 @@
+Missão 2 · log de mudanças (Trilha B, Change Data Feed) · verificado em 2026-10-13 02:59
+
+[OK] 1. O log registra 5 eventos, na ordem em que foram aplicados
+      5 evento(s): pedidos alteracao 105; clientes alteracao 3; clientes insercao 7; pedidos insercao 109; clientes exclusao 5
+[OK] 2. Bronze: 6 clientes (sem a cliente 5), 9 pedidos, e-mail novo no cliente 3
+      6 clientes, cliente 5 presente: não, 9 pedidos, e-mail do 3: carla.n@example.com
+[OK] 3. O pedido 106 continua lá. Receita paga: R$ 750,90
+      pedido 106 presente: sim, receita R$ 750,90
+[OK] 4. Reaplicar o log desde o primeiro evento: mesmos números
+      sincronização 1: (6, 9, 75090) · reaplicação 4: (6, 9, 75090)
+
+Conteúdo do log (lab_log.mudancas). A coluna dados foi omitida: contém dado pessoal.
+  seq  tabela    operacao   chave  versão  quando
+  1    pedidos   alteracao  105    13      2026-10-13 02:44:57
+  2    clientes  alteracao  3      17      2026-10-13 02:45:03
+  3    clientes  insercao   7      19      2026-10-13 02:45:06
+  4    pedidos   insercao   109    15      2026-10-13 02:45:08
+  5    clientes  exclusao   5      20      2026-10-13 02:45:11
+
+Sincronizações (lab_controle.sincronizacoes):
+  execução 1: capturou 5, aplicou 5, offset 0 -> 5, bronze 6 / 9, receita R$ 750,90
+  execução 2: capturou 0, aplicou 0, offset 5 -> 5, bronze 6 / 9, receita R$ 750,90
+  execução 3: capturou 0, aplicou 0, offset 5 -> 5, bronze 6 / 9, receita R$ 750,90
+  execução 4 (reaplicou desde o início): capturou 0, aplicou 5, offset 0 -> 5, bronze 6 / 9, receita R$ 750,90
