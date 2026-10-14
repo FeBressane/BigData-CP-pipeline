@@ -25,6 +25,10 @@ import time
 from datetime import datetime
 
 
+def agora() -> str:
+    return datetime.now().strftime("%H:%M:%S")
+
+
 def ler_offset(consumidor: str, fonte: str = "navegacao"):
     r = spark.sql(f"SELECT posicao FROM {CONTROLE}.offsets "
                   f"WHERE consumidor = '{consumidor}' AND fonte = '{fonte}'").first()
@@ -45,58 +49,191 @@ def gravar_offset(consumidor: str, posicao: int, fonte: str = "navegacao") -> No
 def ultimo_seq() -> int:
     return spark.sql(f"SELECT COALESCE(MAX(seq), 0) AS m FROM {TOPICO}").first().m
 
+# COMMAND ----------
 
-def agora() -> str:
-    return datetime.now().strftime("%H:%M:%S")
+# MAGIC %md
+# MAGIC ## Preparar o tópico e publicar
+
+# COMMAND ----------
+
+def preparar_topico() -> None:
+    """Tópico vazio, offsets e histórico dos leitores apagados, saídas vazias, bronze.navegacao vazia."""
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {LEITORES} COMMENT 'Saídas dos leitores do tópico de navegação'")
+    spark.sql(f"DROP TABLE IF EXISTS {TOPICO}")
+    spark.sql(f"""
+    CREATE TABLE {TOPICO} (
+      seq BIGINT COMMENT 'Posição no tópico',
+      chave INT COMMENT 'Chave do evento = cliente_id (mantém a ordem por cliente)',
+      evento_id INT, cliente_id INT, ip STRING, pagina STRING, quando TIMESTAMP, publicado_em TIMESTAMP
+    ) COMMENT 'Tópico de navegação. Só se anexa no fim; guarda por tempo, e não até ser lido.'
+    """)
+    spark.sql(f"DELETE FROM {CONTROLE}.offsets WHERE fonte = 'navegacao'")
+    spark.sql(f"DROP TABLE IF EXISTS {CONTROLE}.leituras")
+    spark.sql(f"""
+    CREATE TABLE {CONTROLE}.leituras (
+      leitor STRING, rodada INT, iniciada_em TIMESTAMP, terminada_em TIMESTAMP,
+      offset_inicial BIGINT, offset_final BIGINT, eventos_lidos BIGINT,
+      repetidos BIGINT COMMENT 'Eventos lidos de novo após uma queda e ignorados',
+      atraso_maximo BIGINT COMMENT 'Maior número de eventos pendentes encontrado ao acordar',
+      caiu BOOLEAN
+    ) COMMENT 'Uma linha por rodada de cada leitor do tópico'
+    """)
+    for tabela, colunas in [("visitas_eventos", "evento_id INT, pagina STRING, contado_em TIMESTAMP"),
+                            ("por_cliente_eventos", "evento_id INT, cliente_id INT, contado_em TIMESTAMP")]:
+        spark.sql(f"DROP TABLE IF EXISTS {LEITORES}.{tabela}")
+        spark.sql(f"CREATE TABLE {LEITORES}.{tabela} ({colunas})")
+    spark.sql(f"""CREATE OR REPLACE VIEW {LEITORES}.visitas_por_pagina AS
+      SELECT pagina, COUNT(*) AS visitas FROM {LEITORES}.visitas_eventos GROUP BY pagina""")
+    spark.sql(f"""CREATE OR REPLACE VIEW {LEITORES}.eventos_por_cliente AS
+      SELECT cliente_id, COUNT(*) AS eventos FROM {LEITORES}.por_cliente_eventos GROUP BY cliente_id""")
+    spark.sql(f"DELETE FROM {BRONZE}.navegacao")
+
+
+def eventos_do_dia1():
+    return spark.sql(f"SELECT * FROM {ORIGEM}.navegacao ORDER BY evento_id").collect()
+
+
+def publicar(e) -> int:
+    """Anexa um evento ao fim do tópico. Publicar de novo um evento_id já publicado não duplica nada."""
+    cliente = "NULL" if e.cliente_id is None else e.cliente_id
+    spark.sql(f"""
+      INSERT INTO {TOPICO}
+      SELECT COALESCE(MAX(seq), 0) + 1, {cliente}, {e.evento_id}, {cliente}, '{e.ip}', '{e.pagina}',
+             TIMESTAMP '{e.quando:%Y-%m-%d %H:%M:%S}', current_timestamp()
+      FROM {TOPICO}
+      HAVING SUM(CASE WHEN evento_id = {e.evento_id} THEN 1 ELSE 0 END) = 0 OR COUNT(*) = 0
+    """)
+    topo = ultimo_seq()
+    print(f"[{agora()}] produtor  · publicou evento {e.evento_id} · {e.pagina} · tópico no seq {topo}")
+    return topo
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## O que cada leitor faz com um trecho do tópico
+# MAGIC Cada um devolve (eventos lidos, repetidos ignorados). Todos são idempotentes pelo `evento_id`.
+
+# COMMAND ----------
+
+def _repetidos(tabela: str) -> int:
+    return spark.sql(f"""SELECT COUNT(*) AS r FROM _trecho t
+                         WHERE EXISTS (SELECT 1 FROM {tabela} x WHERE x.evento_id = t.evento_id)""").first().r
+
+
+def processar_visitas(trecho, rodada):
+    trecho.createOrReplaceTempView("_trecho")
+    n, rep = trecho.count(), _repetidos(f"{LEITORES}.visitas_eventos")
+    spark.sql(f"""
+      MERGE INTO {LEITORES}.visitas_eventos v USING (SELECT evento_id, pagina FROM _trecho) n
+      ON v.evento_id = n.evento_id
+      WHEN NOT MATCHED THEN INSERT (evento_id, pagina, contado_em) VALUES (n.evento_id, n.pagina, current_timestamp())
+    """)
+    return n, rep
+
+
+COLUNAS_NAV = ["evento_id", "cliente_id", "ip", "pagina", "quando"]
+
+
+def processar_bronze(trecho, rodada):
+    trecho.createOrReplaceTempView("_trecho")
+    n, rep = trecho.count(), _repetidos(f"{BRONZE}.navegacao")
+    spark.sql(f"""
+      MERGE INTO {BRONZE}.navegacao b
+      USING (SELECT {", ".join(COLUNAS_NAV)}, current_timestamp() AS _carregado_em, {rodada} AS _execucao FROM _trecho) n
+      ON b.evento_id = n.evento_id
+      WHEN NOT MATCHED THEN INSERT ({", ".join(COLUNAS_NAV)}, _carregado_em, _execucao)
+        VALUES ({", ".join("n." + c for c in COLUNAS_NAV)}, n._carregado_em, n._execucao)
+    """)
+    return n, rep
+
+
+def processar_por_cliente(trecho, rodada):
+    trecho.createOrReplaceTempView("_trecho")
+    n, rep = trecho.count(), _repetidos(f"{LEITORES}.por_cliente_eventos")
+    spark.sql(f"""
+      MERGE INTO {LEITORES}.por_cliente_eventos p USING (SELECT evento_id, cliente_id FROM _trecho) n
+      ON p.evento_id = n.evento_id
+      WHEN NOT MATCHED THEN INSERT (evento_id, cliente_id, contado_em) VALUES (n.evento_id, n.cliente_id, current_timestamp())
+    """)
+    return n, rep
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## O leitor
+# MAGIC Cada vez que **acorda**, o leitor lê o que chegou depois do seu offset, processa e só então salva o offset.
+
+# COMMAND ----------
+
+class QuedaSimulada(Exception):
+    pass
+
+
+class Leitor:
+    def __init__(self, nome: str, processar):
+        self.nome, self.processar = nome, processar
+        self.rodada = spark.sql(f"SELECT COALESCE(MAX(rodada), 0) + 1 AS n FROM {CONTROLE}.leituras "
+                                f"WHERE leitor = '{nome}'").first().n
+        self.inicio = datetime.now()
+        self.offset_inicial = self.offset = ler_offset(nome) or 0
+        self.lidos = self.repetidos = self.atraso_max = 0
+        self.caiu = False
+        print(f"[{agora()}] {nome:<9} · rodada {self.rodada} · começa no offset {self.offset}")
+
+    def acordar(self, cair_no_seq: int = 0) -> int:
+        """Uma leitura. Devolve quantos eventos leu. Com cair_no_seq > 0, processa até esse seq e cai
+        ANTES de salvar o offset (levanta QuedaSimulada)."""
+        topo = ultimo_seq()
+        pendentes = topo - self.offset
+        self.atraso_max = max(self.atraso_max, pendentes)
+        if pendentes <= 0:
+            return 0
+        vai_cair = bool(cair_no_seq) and self.offset < cair_no_seq <= topo
+        ate = cair_no_seq if vai_cair else topo
+        trecho = spark.table(TOPICO).where(f"seq > {self.offset} AND seq <= {ate}")
+        n, rep = self.processar(trecho, self.rodada)
+        self.lidos += n
+        self.repetidos += rep
+        extra = f" · {rep} repetido(s) ignorado(s)" if rep else ""
+        if vai_cair:
+            self.caiu = True
+            print(f"[{agora()}] {self.nome:<9} · processou seq {self.offset + 1}..{ate}{extra} e CAIU antes de "
+                  f"salvar o offset (o offset salvo continua {self.offset})")
+            raise QuedaSimulada(f"Queda simulada do leitor {self.nome} no seq {ate}")
+        print(f"[{agora()}] {self.nome:<9} · encontrou {pendentes} pendente(s) · leu seq {self.offset + 1}..{ate}"
+              f"{extra} · offset salvo {ate}")
+        self.offset = ate
+        gravar_offset(self.nome, self.offset)
+        return n
+
+    def encerrar(self) -> None:
+        spark.sql(f"""
+          INSERT INTO {CONTROLE}.leituras VALUES (
+            '{self.nome}', {self.rodada}, TIMESTAMP '{self.inicio:%Y-%m-%d %H:%M:%S}', current_timestamp(),
+            {self.offset_inicial}, {self.offset}, {self.lidos}, {self.repetidos}, {self.atraso_max},
+            {str(self.caiu).lower()})
+        """)
 
 
 def rodar_leitor(nome: str, processar, intervalo: float, ocioso_max: float = 20,
-                 espera_inicial: float = 180, cair_no_seq: int = 0) -> None:
-    """Laço de um leitor: acorda a cada `intervalo` segundos, lê o que chegou depois do seu offset,
-    processa e só então salva o offset. Para sozinho depois de `ocioso_max` segundos sem eventos novos.
-    `cair_no_seq` > 0 simula uma queda: processa até esse seq e cai ANTES de salvar o offset."""
-    rodada = spark.sql(f"SELECT COALESCE(MAX(rodada), 0) + 1 AS n FROM {CONTROLE}.leituras "
-                       f"WHERE leitor = '{nome}'").first().n
-    inicio = datetime.now()
-    offset_inicial = ler_offset(nome) or 0
-    offset = offset_inicial
-    lidos = repetidos = atraso_max = 0
-    caiu, viu_evento = False, False
+                 espera_inicial: float = 600, cair_no_seq: int = 0) -> None:
+    """Laço de um leitor em notebook próprio: acorda a cada `intervalo` segundos e para sozinho depois de
+    `ocioso_max` segundos sem eventos novos."""
+    leitor = Leitor(nome, processar)
     t0 = ultimo_novo = time.time()
-    print(f"[{agora()}] {nome} · rodada {rodada} · começa no offset {offset}")
+    viu = False
     try:
         while True:
-            topo = ultimo_seq()
-            atraso_max = max(atraso_max, topo - offset)  # quantos eventos encontrou pendentes ao acordar
-            if topo > offset:
-                vai_cair = cair_no_seq and offset < cair_no_seq <= topo
-                ate = cair_no_seq if vai_cair else topo
-                trecho = spark.table(TOPICO).where(f"seq > {offset} AND seq <= {ate}")
-                n, rep = processar(trecho, rodada)
-                lidos += n
-                repetidos += rep
-                extra = f" · {rep} repetido(s) ignorado(s)" if rep else ""
-                if vai_cair:
-                    caiu = True
-                    print(f"[{agora()}] {nome} processou seq {offset + 1}..{ate}{extra} e CAIU antes de salvar o offset "
-                          f"(o offset salvo continua {offset})")
-                    raise RuntimeError(f"Queda simulada do leitor {nome} no seq {ate}. "
-                                       f"Mude 'Cair no evento' para 0 e rode de novo para religar.")
-                offset = ate
-                gravar_offset(nome, offset)
-                print(f"[{agora()}] {nome} leu seq {offset - n + 1}..{offset} ({n} evento(s)){extra} "
-                      f"· offset salvo {offset} · encontrou {topo - (offset - n)} pendente(s) ao acordar")
-                viu_evento, ultimo_novo = True, time.time()
-            if viu_evento and time.time() - ultimo_novo > ocioso_max:
+            if leitor.acordar(cair_no_seq):
+                viu, ultimo_novo = True, time.time()
+            if viu and time.time() - ultimo_novo > ocioso_max:
                 print(f"[{agora()}] {nome} · {ocioso_max:.0f} s sem eventos novos, encerrando")
                 break
-            if not viu_evento and time.time() - t0 > espera_inicial:
+            if not viu and time.time() - t0 > espera_inicial:
                 print(f"[{agora()}] {nome} · nenhum evento em {espera_inicial:.0f} s, encerrando")
                 break
             time.sleep(intervalo)
+    except QuedaSimulada as q:
+        raise RuntimeError(f"{q}. Mude 'Cair no evento' para 0 e rode de novo para religar.") from None
     finally:
-        spark.sql(f"""
-          INSERT INTO {CONTROLE}.leituras VALUES (
-            '{nome}', {rodada}, TIMESTAMP '{inicio:%Y-%m-%d %H:%M:%S}', current_timestamp(),
-            {offset_inicial}, {offset}, {lidos}, {repetidos}, {atraso_max}, {str(caiu).lower()})
-        """)
+        leitor.encerrar()

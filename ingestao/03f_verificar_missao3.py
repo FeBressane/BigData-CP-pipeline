@@ -22,9 +22,10 @@ display(spark.sql(f"SELECT * FROM {CONTROLE}.leituras ORDER BY iniciada_em"))
 
 ult = lambda nome: [r for r in rodadas if r.leitor == nome]
 r_vis, r_bro, r_cli = ult("visitas"), ult("bronze"), ult("por_cliente")
-# o atraso que importa é o da primeira rodada de cada um, que rodou durante a publicação
-atraso_vis = r_vis[0].atraso_maximo if r_vis else None
-atraso_bro = r_bro[0].atraso_maximo if r_bro else None
+# o atraso que importa é o da primeira rodada de cada um que leu eventos: a que rodou durante a publicação
+primeira = lambda rs: next((r for r in rs if r.eventos_lidos > 0), None)
+atraso_vis = primeira(r_vis).atraso_maximo if primeira(r_vis) else None
+atraso_bro = primeira(r_bro).atraso_maximo if primeira(r_bro) else None
 queda = next((r for r in r_vis if r.caiu), None)
 religou = next((r for r in r_vis if not r.caiu and queda and r.iniciada_em > queda.iniciada_em), None)
 

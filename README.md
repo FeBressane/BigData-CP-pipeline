@@ -52,7 +52,8 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 
 5. Missão 3 (os leitores rodam ao mesmo tempo, cada um numa aba, todos na computação Serverless):
    1. `ingestao/03a_preparar_topico` (tópico vazio, offsets apagados, bronze.navegacao vazia)
-   2. Abrir `ingestao/03c_leitor_visitas`, pôr "Cair no evento" = `4` e rodar. Ele fica esperando eventos.
+   2. Abrir `ingestao/03c_leitor_visitas`, pôr "Cair no evento" = `4` e rodar. Ele fica esperando eventos
+      (até 10 minutos; o produtor precisa ser disparado dentro desse prazo).
    3. Em outra aba, abrir `ingestao/03d_leitor_bronze` e rodar. Também fica esperando.
    4. Em outra aba, rodar `ingestao/03b_produtor`: publica os 8 eventos, um por segundo.
       O `visitas` cai depois do 4º evento (erro proposital); a bronze segue gravando em rajadas.
