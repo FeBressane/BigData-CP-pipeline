@@ -23,6 +23,7 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 | Desenho | _a definir: diagrams.net, Excalidraw ou Mermaid_ | |
 | Trilha de captura de mudanças | **Trilha B**: Change Data Feed do Delta nas tabelas da origem | O próprio banco registra cada mudança na ordem do commit; nenhuma mudança escapa, mesmo feita por fora do aplicativo |
 | Log de mudanças | Tabela `lab_log.mudancas` (só anexa) | Sequência, tabela, operação, chave e dados de cada evento |
+| Tópico de navegação | Tabela `lab_log.navegacao` (só anexa), Trilha A sem broker | O Kafka não é alcançável a partir da Free Edition; uma tabela só-anexa com offsets por leitor tem o mesmo comportamento |
 
 ## Como rodar do zero
 
@@ -48,6 +49,16 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 
    A partir da Missão 2, `clientes` e `pedidos` chegam à bronze pelo log. A carga por marca-d'água
    (`01_carga_incremental`) fica como registro da Missão 1 e segue valendo para a `navegacao` até a Missão 3.
+
+5. Missão 3 (os leitores rodam ao mesmo tempo, cada um numa aba, todos na computação Serverless):
+   1. `ingestao/03a_preparar_topico` (tópico vazio, offsets apagados, bronze.navegacao vazia)
+   2. Abrir `ingestao/03c_leitor_visitas`, pôr "Cair no evento" = `4` e rodar. Ele fica esperando eventos.
+   3. Em outra aba, abrir `ingestao/03d_leitor_bronze` e rodar. Também fica esperando.
+   4. Em outra aba, rodar `ingestao/03b_produtor`: publica os 8 eventos, um por segundo.
+      O `visitas` cai depois do 4º evento (erro proposital); a bronze segue gravando em rajadas.
+   5. Quando o produtor terminar, voltar ao `03c_leitor_visitas`, pôr "Cair no evento" = `0` e rodar de novo.
+   6. `ingestao/03e_leitor_por_cliente` (liga depois de tudo publicado e lê desde o offset 0)
+   7. `ingestao/03f_verificar_missao3` (confere e grava `evidencias/missao3.txt`)
 
 _Os próximos passos entram a cada missão._
 
@@ -75,6 +86,21 @@ _Os próximos passos entram a cada missão._
   bronze igual.
 - **Exclusão chega ao destino.** O evento de exclusão da cliente 5 apaga a linha da bronze. O pedido 106
   continua, sem chave estrangeira. O mesmo caminho atende ao pedido de eliminação da Missão 8.
+- **Tópico de navegação (Missão 3, Trilha A).** `lab_log.navegacao` é uma tabela Delta em que só se anexa,
+  com `seq` por evento e chave igual ao `cliente_id`. O produtor não conhece os leitores. Cada leitor
+  (`visitas`, `bronze`, `por_cliente`) guarda o próprio offset em `lab_controle.offsets` e registra cada
+  rodada em `lab_controle.leituras`. A carga em lote da navegação (Missão 1) saiu de cena.
+- **Quando salvar o offset: depois de processar.**
+  - *Salvando depois* (a nossa escolha): se o leitor cair entre processar e salvar, ao voltar ele lê de
+    novo o último trecho. Nada se perde, mas um evento pode chegar duas vezes (**pelo menos uma vez**).
+  - *Salvando antes*: se cair entre salvar e processar, ao voltar ele pula o trecho que não terminou.
+    Nada se repete, mas eventos podem se perder (**no máximo uma vez**).
+  - Escolhemos não perder eventos e tornar o processamento idempotente: cada leitor registra o `evento_id`
+    que já contou e ignora repetidos. O teste derruba o `visitas` depois do 4º evento, antes de salvar o
+    offset; ao religar, ele relê o 4º evento, reconhece que já foi contado e chega aos mesmos totais.
+- **Latência no Databricks serverless.** Cada escrita numa tabela Delta leva cerca de 1 a 2 segundos, então
+  "um evento por segundo" e "leitor na hora" ficam um pouco mais lentos que num broker de verdade. A
+  diferença de ritmo entre o leitor rápido (acorda a cada 0,5 s) e a bronze (a cada 5 s) continua visível.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
