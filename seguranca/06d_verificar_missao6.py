@@ -92,7 +92,7 @@ def confere(tabela_silver, chave_linha, fontes_bronze, coluna_cliente):
     esperado = {}
     for fonte in fontes_bronze:
         for r in spark.table(fonte).select(F.col(chave_linha).cast("string").alias("k"),
-                                          F.col(coluna_cliente).cast("int").cast("string").alias("c")).collect():
+                                          F.expr(f"CAST(try_cast(`{coluna_cliente}` AS INT) AS STRING)").alias("c")).collect():
             esperado.setdefault(r.k, pseudonimo_de(r.c, CHAVE))
     silver = spark.table(f"{SILVER}.{tabela_silver}").select(
         F.col(chave_linha).cast("string").alias("k"), "cliente_ps").collect()
