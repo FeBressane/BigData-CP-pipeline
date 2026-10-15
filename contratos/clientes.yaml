@@ -1,33 +1,48 @@
 # Contrato de dados · clientes
-# Mesmo formato de contratos/pedidos.yaml. Dono e classe de cada campo entram na Missão 5.
+# Mesmo formato de contratos/pedidos.yaml.
 
 conjunto: clientes
-versao: 1
-dono: a definir na Missão 5
-classe: a definir na Missão 5
+versao: 2
+descricao: Cadastro das pessoas que compram na loja.
+dono: ver governanca/acordo.yaml
+classe: pessoal
 frescor: até 24 horas depois da mudança na origem
 campos:
   - nome: id
+    descricao: Identificador do cliente. Aponta para uma pessoa.
     tipo: inteiro
     obrigatorio: true
     unico: true
+    classe: pessoal
   - nome: nome
+    descricao: Nome completo.
     tipo: texto
     obrigatorio: true
+    classe: pessoal
   - nome: email
+    descricao: E-mail de contato.
     tipo: texto
     obrigatorio: true
+    classe: pessoal
   - nome: cpf
+    descricao: CPF do cliente.
     tipo: texto
     obrigatorio: true
+    classe: pessoal
   - nome: nascimento
+    descricao: Data de nascimento. Junto com a cidade, pode identificar a pessoa.
     tipo: data
     obrigatorio: true
     maximo: momento da carga
+    classe: pessoal
   - nome: cidade
+    descricao: Cidade do cliente.
     tipo: texto
     obrigatorio: true
+    classe: pessoal
   - nome: atualizado_em
+    descricao: Última alteração do cadastro na origem.
     tipo: data_hora
     obrigatorio: true
     maximo: momento da carga
+    classe: interno

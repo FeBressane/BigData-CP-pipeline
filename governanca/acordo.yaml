@@ -1,0 +1,45 @@
+# Acordo de governança · Laboratório BD
+# Quatro decisões por conjunto: dono (um time, nunca uma pessoa), classe, retenção e acesso.
+# Lido pela regra como código (governanca/05a_governanca) e pelo gerador do catálogo.
+# Classes, da menos para a mais sensível: público | interno | confidencial | pessoal | pessoal sensível
+
+conjuntos:
+  - nome: clientes
+    dono: time de Cadastro e Atendimento
+    classe: pessoal
+    retencao:
+      prazo: enquanto o cliente tiver conta ativa
+      motivo: >-
+        Uso: o cadastro só serve enquanto há relação com o cliente. Encerrada a conta, ou quando o
+        titular pede a eliminação (LGPD, art. 18), os dados pessoais saem de todas as camadas.
+    acesso:
+      quem_pede: times de Atendimento e de Análise
+      quem_aprova: time de Cadastro e Atendimento (dono)
+      auditoria: toda leitura da bronze fica registrada; o analista só lê a silver
+
+  - nome: pedidos
+    dono: time de Vendas
+    classe: pessoal
+    retencao:
+      prazo: 5 anos após o fim do ano do pedido
+      motivo: >-
+        Obrigação fiscal: o pedido é registro de venda e precisa ser guardado pelo prazo de guarda
+        fiscal (prazo a confirmar com o jurídico da loja). Se o cliente pedir a eliminação, o pedido
+        fica, mas sem a pessoa: o vínculo com o cliente e a observação são apagados.
+    acesso:
+      quem_pede: times de Financeiro e de Análise
+      quem_aprova: time de Vendas (dono)
+      auditoria: toda leitura da bronze fica registrada; o analista só lê a silver e a gold
+
+  - nome: navegacao
+    dono: time do Site
+    classe: pessoal
+    retencao:
+      prazo: 90 dias
+      motivo: >-
+        Uso curto e volume alto: os cliques servem para análise de visitas recentes. Depois de 90 dias
+        só os agregados ficam (visitas por página), sem IP e sem cliente.
+    acesso:
+      quem_pede: times de Marketing e de Produto
+      quem_aprova: time do Site (dono)
+      auditoria: o IP nunca sai da bronze; leituras da bronze ficam registradas

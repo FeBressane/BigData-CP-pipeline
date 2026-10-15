@@ -17,6 +17,14 @@
 # MAGIC | pedidos | `lab_bronze.pedidos` (pelo log) + `lab_bronze.pedidos_lote` (arquivos) |
 # MAGIC | clientes | `lab_bronze.clientes` (pelo log) |
 # MAGIC | navegacao | `lab_bronze.navegacao` (pelo tópico) |
+# MAGIC
+# MAGIC **Missão 5:** antes de validar, a regra como código (`governanca/05a_governanca`) confere o acordo de
+# MAGIC governança. Conjunto pessoal sem prazo de retenção, campo sem classe ou dono que não é um time param o
+# MAGIC pipeline aqui, com a mensagem do que falta.
+
+# COMMAND ----------
+
+# MAGIC %run ../governanca/05a_governanca
 
 # COMMAND ----------
 

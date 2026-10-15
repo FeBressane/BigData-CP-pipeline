@@ -1,5 +1,6 @@
 # Contrato de dados · pedidos
 # O validador (qualidade/04b_validar) lê as regras deste arquivo. Nada fica fixo no código.
+# O catálogo (governanca/catalogo.md) é gerado a partir deste arquivo e do acordo de governança.
 #
 # Regras aceitas por campo:
 #   tipo:        inteiro | texto | data | data_hora
@@ -8,32 +9,49 @@
 #   minimo:      número
 #   maximo:      momento da carga (para datas: não pode estar no futuro)
 #   dominio:     [lista de valores aceitos]
+# Classificação por campo (Missão 5):
+#   classe:            público | interno | confidencial | pessoal | pessoal sensível
+#   classe_encontrada_pelo_varredor: true   (o produtor não tinha declarado; o varredor achou dado pessoal)
 
 conjunto: pedidos
-versao: 1
-dono: a definir na Missão 5
-classe: a definir na Missão 5
+versao: 2
+descricao: Pedidos feitos na loja, um por linha, com valor, status e o cliente que comprou.
+dono: ver governanca/acordo.yaml
+classe: pessoal
 frescor: até 24 horas depois da mudança na origem
 campos:
   - nome: id
+    descricao: Número do pedido.
     tipo: inteiro
     obrigatorio: true
     unico: true
+    classe: interno
   - nome: cliente_id
+    descricao: Cliente que fez o pedido. Liga o pedido a uma pessoa.
     tipo: inteiro
     obrigatorio: true
+    classe: pessoal
   - nome: valor_centavos
+    descricao: Valor do pedido em centavos.
     tipo: inteiro
     obrigatorio: true
     minimo: 0
+    classe: confidencial
   - nome: status
+    descricao: Situação do pedido.
     tipo: texto
     obrigatorio: true
     dominio: [pendente, pago, cancelado]
+    classe: interno
   - nome: criado_em
+    descricao: Momento em que o pedido foi feito.
     tipo: data_hora
     obrigatorio: true
     maximo: momento da carga
+    classe: interno
   - nome: observacao
+    descricao: Texto livre do atendimento. Pode conter contato do cliente.
     tipo: texto
     obrigatorio: false
+    classe: pessoal
+    classe_encontrada_pelo_varredor: true

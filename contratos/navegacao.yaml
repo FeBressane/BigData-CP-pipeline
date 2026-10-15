@@ -1,27 +1,39 @@
 # Contrato de dados · navegacao
-# Mesmo formato de contratos/pedidos.yaml. Dono e classe de cada campo entram na Missão 5.
+# Mesmo formato de contratos/pedidos.yaml.
 # cliente_id é opcional: o visitante sem cadastro não tem cliente.
 
 conjunto: navegacao
-versao: 1
-dono: a definir na Missão 5
-classe: a definir na Missão 5
+versao: 2
+descricao: Cliques no site da loja, um evento por página visitada.
+dono: ver governanca/acordo.yaml
+classe: pessoal
 frescor: até 5 segundos depois da publicação no tópico
 campos:
   - nome: evento_id
+    descricao: Identificador do evento.
     tipo: inteiro
     obrigatorio: true
     unico: true
+    classe: interno
   - nome: cliente_id
+    descricao: Cliente logado, quando houver. Vazio para visitante sem cadastro.
     tipo: inteiro
     obrigatorio: false
+    classe: pessoal
   - nome: ip
+    descricao: Endereço IP da conexão. Identifica a conexão de uma pessoa.
     tipo: texto
     obrigatorio: true
+    classe: pessoal
+    classe_encontrada_pelo_varredor: true
   - nome: pagina
+    descricao: Página visitada.
     tipo: texto
     obrigatorio: true
+    classe: interno
   - nome: quando
+    descricao: Momento da visita.
     tipo: data_hora
     obrigatorio: true
     maximo: momento da carga
+    classe: interno

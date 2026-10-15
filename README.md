@@ -20,7 +20,7 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 | Banco da origem | Tabelas Delta no schema `workspace.lab_origem` | Simula o banco transacional da loja |
 | Camadas de destino | Tabelas Delta em `lab_bronze`, `lab_silver` e `lab_gold` | Mesmo catálogo, schemas separados por camada |
 | Estado do pipeline | Schema `lab_controle` (marcas-d'água, offsets) | Estado fora do código |
-| Desenho | _a definir: diagrams.net, Excalidraw ou Mermaid_ | |
+| Desenho | Excalidraw (`arquitetura/estrutura.excalidraw` e `Estrutura.png`) | Desenho colaborativo no navegador, com fonte versionada |
 | Trilha de captura de mudanças | **Trilha B**: Change Data Feed do Delta nas tabelas da origem | O próprio banco registra cada mudança na ordem do commit; nenhuma mudança escapa, mesmo feita por fora do aplicativo |
 | Log de mudanças | Tabela `lab_log.mudancas` (só anexa) | Sequência, tabela, operação, chave e dados de cada evento |
 | Tópico de navegação | Tabela `lab_log.navegacao` (só anexa), Trilha A sem broker | O Kafka não é alcançável a partir da Free Edition; uma tabela só-anexa com offsets por leitor tem o mesmo comportamento |
@@ -64,6 +64,17 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    1. `ingestao/04a_carregar_lote_dia3` (o lote do dia 3 entra na bronze como chegou)
    2. `qualidade/04b_validar` (lê `contratos/*.yaml` e separa silver e quarentena)
    3. `qualidade/04c_verificar_missao4` (confere e grava `evidencias/missao4.txt`)
+
+7. Missão 5:
+   1. `governanca/05a_governanca` (regra como código: confere o acordo; para se faltar retenção, classe ou dono)
+   2. `governanca/05b_gerar_catalogo` (gera `governanca/catalogo.md` a partir dos contratos e do acordo)
+   3. `governanca/05c_varredor` (procura e-mail, telefone, CPF e IP na bronze e no log; grava `lab_qualidade.varredura`)
+   4. `qualidade/04b_validar` (agora começa pela regra como código)
+   5. `governanca/05d_verificar_missao5` (confere e grava `evidencias/missao5.txt`)
+
+   Para ver o pipeline parar de verdade: apaguem a linha `prazo: 90 dias` da `navegacao` em
+   `governanca/acordo.yaml`, rodem `qualidade/04b_validar` (para na primeira célula, com a mensagem do que falta),
+   devolvam a linha e rodem de novo.
 
 _Os próximos passos entram a cada missão._
 
@@ -121,6 +132,35 @@ _Os próximos passos entram a cada missão._
 - **Chave repetida:** a primeira ocorrência passa; as seguintes vão para a quarentena.
 - **Silver provisória.** Nesta missão a silver guarda as colunas do contrato como estão. Na Missão 6 ela é
   refeita sem nome, e-mail, CPF, observação nem IP, com o pseudônimo no lugar do id do cliente.
+- **Acordo de governança (Missão 5).** `governanca/acordo.yaml` traz, para cada conjunto, as quatro decisões:
+  dono (sempre um time), classe, retenção (prazo e motivo) e acesso (quem pede, quem aprova, auditoria). Os
+  contratos ganharam a classe de cada campo e a descrição; a classe do conjunto é a do campo mais sensível, e os
+  três conjuntos são `pessoal`.
+- **O dono mais difícil: `pedidos`.** Três times mexem no pedido: Vendas cria e muda o status, Financeiro usa o
+  valor para fechar o caixa e cumprir a obrigação fiscal, e Atendimento escreve a `observacao`. Ficou com o
+  **time de Vendas** porque é quem gera o dado e decide o que cada status quer dizer: quando aparece um pedido
+  `enviado` (Missão 4), é Vendas quem diz se o domínio muda ou se a origem está errada. Financeiro é o maior
+  consumidor, não o dono: pede acesso e Vendas aprova. A `observacao` continua sob Vendas, mas é o campo que o
+  Atendimento preenche, por isso o varredor olha para ela a cada execução.
+- **Três prazos de retenção.**
+  - *Navegação, 90 dias:* o clique serve para análise de visitas recentes e tem IP. Volume alto, valor que cai
+    rápido: depois de 90 dias ficam só os agregados por página, sem IP e sem cliente.
+  - *Pedidos, 5 anos após o fim do ano do pedido:* obrigação fiscal. O pedido é registro de venda e precisa ser
+    guardado pelo prazo de guarda fiscal (a confirmar com o jurídico da loja). Se o cliente pedir eliminação, o
+    pedido fica, mas sem a pessoa: o vínculo e a observação saem.
+  - *Clientes, enquanto a conta estiver ativa:* o cadastro só tem uso enquanto há relação com o cliente. Conta
+    encerrada ou pedido de eliminação (LGPD, art. 18): os dados pessoais saem de todas as camadas (Missão 8).
+- **Regra como código.** `governanca/05a_governanca` lê o acordo e os contratos e lança erro, com a lista do que
+  falta, quando um conjunto pessoal não tem prazo de retenção, um campo não tem classe, a classe do conjunto não é
+  a do campo mais sensível ou o dono não é um time. O validador roda esse notebook na primeira célula: o pipeline
+  não chega à silver com o acordo quebrado.
+- **Catálogo gerado, nunca editado.** `governanca/catalogo.md` sai de `05b_gerar_catalogo`: descrição, campos e
+  classes vêm do contrato; dono, retenção e acesso vêm do acordo; linhas e última alteração vêm da plataforma.
+  Mudou o contrato, gera de novo.
+- **Varredor de dado pessoal.** O produtor não tinha declarado a `observacao` dos pedidos (tem e-mail no 104 e
+  telefone no 106) nem o `ip` da navegação. `05c_varredor` procura e-mail, telefone, CPF e IP em todas as colunas
+  de texto da bronze e do log e compara com a classe do contrato; os dois achados viraram `classe: pessoal` com
+  `classe_encontrada_pelo_varredor: true`. A saída guarda onde está o dado, nunca o valor.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
