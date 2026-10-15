@@ -2,7 +2,7 @@
 # Mesmo formato de contratos/pedidos.yaml.
 
 conjunto: clientes
-versao: 2
+versao: 3
 descricao: Cadastro das pessoas que compram na loja.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -14,32 +14,38 @@ campos:
     obrigatorio: true
     unico: true
     classe: pessoal
+    protecao: pseudonimo
   - nome: nome
     descricao: Nome completo.
     tipo: texto
     obrigatorio: true
     classe: pessoal
+    protecao: remover
   - nome: email
     descricao: E-mail de contato.
     tipo: texto
     obrigatorio: true
     classe: pessoal
+    protecao: remover
   - nome: cpf
     descricao: CPF do cliente.
     tipo: texto
     obrigatorio: true
     classe: pessoal
+    protecao: remover
   - nome: nascimento
     descricao: Data de nascimento. Junto com a cidade, pode identificar a pessoa.
     tipo: data
     obrigatorio: true
     maximo: momento da carga
     classe: pessoal
+    protecao: manter  # quase-identificador; a Missão 7 decide a finalidade e generaliza
   - nome: cidade
     descricao: Cidade do cliente.
     tipo: texto
     obrigatorio: true
     classe: pessoal
+    protecao: manter  # quase-identificador; a Missão 7 decide a finalidade
   - nome: atualizado_em
     descricao: Última alteração do cadastro na origem.
     tipo: data_hora

@@ -48,7 +48,7 @@ checks = [
      f"{len(eventos)} evento(s): " + "; ".join(f"{t} {o} {k}" for t, o, k in obtido_log)),
     ("Bronze: 6 clientes (sem a cliente 5), 9 pedidos, e-mail novo no cliente 3",
      (b.clientes, b.c5, b.pedidos, b.email3) == (6, 0, 9, "carla.n@example.com"),
-     f"{b.clientes} clientes, cliente 5 presente: {'sim' if b.c5 else 'não'}, {b.pedidos} pedidos, e-mail do 3: {b.email3}"),
+     f"{b.clientes} clientes, cliente 5 presente: {'sim' if b.c5 else 'não'}, {b.pedidos} pedidos, e-mail do 3 atualizado: {'sim' if b.email3 == 'carla.n@example.com' else 'não'}"),
     ("O pedido 106 continua lá. Receita paga: R$ 750,90",
      b.p106 == 1 and b.receita == 75090,
      f"pedido 106 presente: {'sim' if b.p106 else 'não'}, receita {reais(b.receita)}"),

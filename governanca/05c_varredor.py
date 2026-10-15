@@ -27,13 +27,8 @@ CATALOGO = dbutils.widgets.get("catalogo")
 QUALIDADE = f"{CATALOGO}.lab_qualidade"
 SCHEMAS = ["lab_bronze", "lab_log"]
 
-# Padrões (expressões regulares Java, usadas pelo rlike do Spark)
-PADROES = {
-    "e-mail": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+",
-    "telefone": r"\(?\b\d{2}\)?\s?9?\d{4}-\d{4}\b",
-    "CPF": r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",
-    "IP": r"\b(\d{1,3}\.){3}\d{1,3}\b",
-}
+# Padrões de dado pessoal: PADROES_PESSOAIS, definidos em 05a_governanca (também usados na Missão 6)
+PADROES = PADROES_PESSOAIS
 CHAVES = ["evento_id", "id", "seq", "_linha"]                 # primeira que existir identifica a linha
 CONJUNTO_DA_TABELA = {"pedidos": "pedidos", "pedidos_lote": "pedidos", "clientes": "clientes",
                       "navegacao": "navegacao"}

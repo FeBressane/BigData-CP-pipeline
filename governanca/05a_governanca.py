@@ -11,6 +11,7 @@
 # MAGIC 2. Todo conjunto com contrato tem entrada no acordo, com dono que é **um time** (não uma pessoa).
 # MAGIC 3. Todo campo do contrato tem classe, e a classe do conjunto é a do **campo mais sensível**.
 # MAGIC 4. A classe do conjunto no acordo é a mesma do contrato.
+# MAGIC 5. Todo campo pessoal declara como é protegido na silver (`protecao`: pseudonimo, remover ou manter). (Missão 6)
 # MAGIC
 # MAGIC Também ficam aqui as funções que o gerador do catálogo (`05b`) e a verificação (`05d`) usam.
 # MAGIC Rodado sozinho, ele só confere as regras e mostra o resultado.
@@ -29,6 +30,14 @@ except ImportError:
 RAIZ_REPO = os.path.abspath(os.path.join(os.getcwd(), ".."))
 CLASSES = ["público", "interno", "confidencial", "pessoal", "pessoal sensível"]
 CLASSES_COM_RETENCAO = {"pessoal", "pessoal sensível"}
+PROTECOES = ["pseudonimo", "remover", "manter"]
+# Padrões de dado pessoal (expressões regulares Java, usadas pelo rlike do Spark): varredor (05c) e Missão 6
+PADROES_PESSOAIS = {
+    "e-mail": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+",
+    "telefone": r"\(?\b\d{2}\)?\s?9?\d{4}-\d{4}\b",
+    "CPF": r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",
+    "IP": r"\b(\d{1,3}\.){3}\d{1,3}\b",
+}
 
 
 class GovernancaError(Exception):
@@ -78,6 +87,13 @@ def verificar_regras(contratos: dict, acordo: dict) -> list:
         if invalidas:
             erros.append(f"contrato '{nome}': classe desconhecida em {', '.join(invalidas)}. "
                          f"Classes aceitas: {', '.join(CLASSES)}.")
+        sem_protecao = [c["nome"] for c in campos if c.get("classe") in CLASSES_COM_RETENCAO
+                        and c.get("protecao") not in PROTECOES]
+        if sem_protecao:
+            erros.append(f"contrato '{nome}': campo(s) pessoal(is) sem proteção para a silver: "
+                         f"{', '.join(sem_protecao)}. Declarem protecao: {' | '.join(PROTECOES)}.")
+        if sum(1 for c in campos if c.get("protecao") == "pseudonimo") > 1:
+            erros.append(f"contrato '{nome}': só o campo que identifica o cliente vira pseudônimo (cliente_ps).")
         esperada = classe_mais_sensivel(c.get("classe") for c in campos)
         if esperada and contrato.get("classe") != esperada:
             erros.append(f"contrato '{nome}': a classe do conjunto é '{contrato.get('classe')}', mas o campo mais "
@@ -162,7 +178,7 @@ def gerar_catalogo(contratos: dict, acordo: dict, metadados: dict = None, gerado
         for camada, m in sorted(metadados.get(nome, {}).items()):
             linhas.append(f"- **Tabela {camada}:** `{m['tabela']}` · {m['linhas']} linhas · "
                           f"última alteração {m['alterada_em']}")
-        linhas += ["", "| Campo | Tipo | Classe | Regras | Descrição |", "|---|---|---|---|---|"]
+        linhas += ["", "| Campo | Tipo | Classe | Na silver | Regras | Descrição |", "|---|---|---|---|---|---|"]
         for f in c.get("campos", []):
             regras = []
             if f.get("obrigatorio"):
@@ -176,11 +192,15 @@ def gerar_catalogo(contratos: dict, acordo: dict, metadados: dict = None, gerado
             if "dominio" in f:
                 regras.append("um de: " + ", ".join(map(str, f["dominio"])))
             classe = f.get("classe", "—") + (" ⚠ achado pelo varredor" if f.get("classe_encontrada_pelo_varredor") else "")
-            linhas.append(f"| `{f['nome']}` | {f.get('tipo')} | {classe} | {', '.join(regras) or '—'} | "
+            silver = {"pseudonimo": "pseudônimo `cliente_ps`", "remover": "removido",
+                      "manter": "mantido"}.get(f.get("protecao"), "mantido")
+            linhas.append(f"| `{f['nome']}` | {f.get('tipo')} | {classe} | {silver} | {', '.join(regras) or '—'} | "
                           f"{_txt(f.get('descricao'))} |")
     linhas += ["", "---", "", "Classes, da menos para a mais sensível: " + " < ".join(CLASSES) + ".",
                "Regra como código (`governanca/05a_governanca`): conjunto de classe pessoal sem prazo de retenção "
-               "para o pipeline.", ""]
+               "para o pipeline.",
+               "Na silver: pseudônimo = HMAC-SHA-256 do id com a chave CHAVE_PSEUDONIMO (fora do repositório); "
+               "proteção exigida por classe em `seguranca/matriz.md`.", ""]
     return "\n".join(linhas)
 
 

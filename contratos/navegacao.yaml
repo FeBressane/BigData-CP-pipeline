@@ -3,7 +3,7 @@
 # cliente_id é opcional: o visitante sem cadastro não tem cliente.
 
 conjunto: navegacao
-versao: 2
+versao: 3
 descricao: Cliques no site da loja, um evento por página visitada.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -20,11 +20,13 @@ campos:
     tipo: inteiro
     obrigatorio: false
     classe: pessoal
+    protecao: pseudonimo
   - nome: ip
     descricao: Endereço IP da conexão. Identifica a conexão de uma pessoa.
     tipo: texto
     obrigatorio: true
     classe: pessoal
+    protecao: remover
     classe_encontrada_pelo_varredor: true
   - nome: pagina
     descricao: Página visitada.

@@ -21,10 +21,18 @@
 # MAGIC **Missão 5:** antes de validar, a regra como código (`governanca/05a_governanca`) confere o acordo de
 # MAGIC governança. Conjunto pessoal sem prazo de retenção, campo sem classe ou dono que não é um time param o
 # MAGIC pipeline aqui, com a mensagem do que falta.
+# MAGIC
+# MAGIC **Missão 6:** a silver sai protegida, campo a campo, como o contrato manda (`protecao`): o id do cliente vira o
+# MAGIC pseudônimo `cliente_ps` (HMAC-SHA-256 com a `CHAVE_PSEUDONIMO`, que fica fora do repositório), e nome, e-mail,
+# MAGIC CPF, observação e IP não entram. Na quarentena esses campos aparecem mascarados.
 
 # COMMAND ----------
 
 # MAGIC %run ../governanca/05a_governanca
+
+# COMMAND ----------
+
+# MAGIC %run ../seguranca/06a_protecao
 
 # COMMAND ----------
 
@@ -60,6 +68,7 @@ CREATE TABLE IF NOT EXISTS {CONTROLE}.validacoes (
 """)
 EXECUCAO = spark.sql(f"SELECT COALESCE(MAX(execucao), 0) + 1 AS n FROM {CONTROLE}.validacoes").first().n
 print(f"Validação · execução {EXECUCAO} · conjuntos {', '.join(CONJUNTOS)}")
+print(f"Pseudônimo: chave lida de {registrar_pseudonimo()}")
 
 # COMMAND ----------
 
@@ -83,6 +92,27 @@ def ler_contrato(conjunto: str) -> dict:
 
 def literal(v) -> str:
     return "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def expr_silver(campo: dict):
+    """Como o campo entra na silver, pela proteção do contrato (None = não entra)."""
+    nome, tipado = campo["nome"], f"try_cast(`{campo['nome']}` AS {TIPOS[campo['tipo']]})"
+    protecao = campo.get("protecao", "manter")
+    if protecao == "remover":
+        return None
+    if protecao == "pseudonimo":
+        return f"pseudonimo(CAST({tipado} AS STRING)) AS cliente_ps"
+    return f"{tipado} AS `{nome}`"
+
+
+def expr_quarentena(campo: dict) -> str:
+    """Como o campo aparece na quarentena: o dado pessoal nunca em claro."""
+    nome, protecao = campo["nome"], campo.get("protecao", "manter")
+    if protecao == "pseudonimo":
+        return f"pseudonimo(CAST(try_cast(`{nome}` AS {TIPOS[campo['tipo']]}) AS STRING))"
+    if protecao == "remover":
+        return sql_mascara(f"`{nome}`")
+    return f"`{nome}`"
 
 
 def regras_sql(contrato: dict):
@@ -136,20 +166,29 @@ for conjunto in CONJUNTOS:
       FROM _candidatas c
     """).createOrReplaceTempView("_avaliadas")
 
-    # aprovadas: silver recalculada a partir da bronze (idempotente)
-    tipadas = ", ".join(f"try_cast(`{c['nome']}` AS {TIPOS[c['tipo']]}) AS `{c['nome']}`" for c in contrato["campos"])
+    # aprovadas: silver recalculada a partir da bronze (idempotente), já protegida
+    tipadas = ", ".join(e for e in (expr_silver(c) for c in contrato["campos"]) if e)
+    # Se a silver existente ainda tem colunas que agora são protegidas (versão sem proteção), ela é apagada antes:
+    # assim as versões antigas, com dado pessoal, não ficam acessíveis por time travel na tabela nova.
+    protegidos = {c["nome"] for c in contrato["campos"] if c.get("protecao") in ("remover", "pseudonimo")}
+    if spark.catalog.tableExists(f"{SILVER}.{conjunto}") and protegidos & set(spark.table(f"{SILVER}.{conjunto}").columns):
+        spark.sql(f"DROP TABLE {SILVER}.{conjunto}")
+        print(f"{conjunto}: silver antiga, sem proteção, apagada")
     spark.sql(f"""
       CREATE OR REPLACE TABLE {SILVER}.{conjunto}
-      COMMENT 'Linhas de {conjunto} aprovadas pelo contrato versão {contrato["versao"]}'
+      COMMENT 'Linhas de {conjunto} aprovadas pelo contrato versão {contrato["versao"]}, protegidas (sem dado pessoal em claro)'
       AS SELECT {tipadas}, _origem, current_timestamp() AS _validado_em, {EXECUCAO} AS _execucao
       FROM _avaliadas WHERE _motivo = ''
     """)
 
-    # reprovadas: quarentena com o motivo; a execução registrada é a da primeira vez que a linha chegou
+    # reprovadas: quarentena com o motivo; a execução registrada é a da primeira vez que a linha chegou.
+    # O dado pessoal entra mascarado ou como pseudônimo (rodar de novo também limpa as linhas antigas).
+    dados_q = ", ".join(f"{expr_quarentena(c)} AS `{c['nome']}`" for c in contrato["campos"])
+    chave_q = expr_quarentena(next(c for c in contrato["campos"] if c["nome"] == chave))
     spark.sql(f"""
       MERGE INTO {QUALIDADE}.quarentena q
-      USING (SELECT '{conjunto}' AS conjunto, _origem AS origem, _linha AS linha, `{chave}` AS chave,
-                    _motivo AS motivo, to_json(struct({", ".join(f"`{c}`" for c in campos)})) AS dados
+      USING (SELECT '{conjunto}' AS conjunto, _origem AS origem, _linha AS linha, {chave_q} AS chave,
+                    _motivo AS motivo, to_json(struct({dados_q})) AS dados
              FROM _avaliadas WHERE _motivo <> '') n
       ON q.conjunto = n.conjunto AND q.origem = n.origem AND q.linha = n.linha
       WHEN MATCHED THEN UPDATE SET q.motivo = n.motivo, q.dados = n.dados

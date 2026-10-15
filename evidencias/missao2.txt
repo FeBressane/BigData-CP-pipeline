@@ -3,7 +3,7 @@ Missão 2 · log de mudanças (Trilha B, Change Data Feed) · verificado em 2026
 [OK] 1. O log registra 5 eventos, na ordem em que foram aplicados
       5 evento(s): pedidos alteracao 105; clientes alteracao 3; clientes insercao 7; pedidos insercao 109; clientes exclusao 5
 [OK] 2. Bronze: 6 clientes (sem a cliente 5), 9 pedidos, e-mail novo no cliente 3
-      6 clientes, cliente 5 presente: não, 9 pedidos, e-mail do 3: carla.n@example.com
+      6 clientes, cliente 5 presente: não, 9 pedidos, e-mail do 3 atualizado: sim
 [OK] 3. O pedido 106 continua lá. Receita paga: R$ 750,90
       pedido 106 presente: sim, receita R$ 750,90
 [OK] 4. Reaplicar o log desde o primeiro evento: mesmos números

@@ -76,6 +76,14 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    `governanca/acordo.yaml`, rodem `qualidade/04b_validar` (para na primeira célula, com a mensagem do que falta),
    devolvam a linha e rodem de novo.
 
+8. Missão 6:
+   1. `seguranca/06b_criar_chave` (uma vez: cria a `CHAVE_PSEUDONIMO` no secret scope `lab_bd`, fora do repositório)
+   2. `qualidade/04b_validar` (refaz a silver protegida: `cliente_ps` no lugar do id, sem nome, e-mail, CPF,
+      observação nem IP; quarentena mascarada)
+   3. `governanca/05b_gerar_catalogo` (o catálogo ganha a coluna "Na silver")
+   4. `seguranca/06c_papeis` (grupos `lab_pipeline` e `lab_analistas`, permissões como código)
+   5. `seguranca/06d_verificar_missao6` (confere e grava `evidencias/missao6.txt`, com o trajeto do CPF)
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -161,6 +169,30 @@ _Os próximos passos entram a cada missão._
   telefone no 106) nem o `ip` da navegação. `05c_varredor` procura e-mail, telefone, CPF e IP em todas as colunas
   de texto da bronze e do log e compara com a classe do contrato; os dois achados viraram `classe: pessoal` com
   `classe_encontrada_pelo_varredor: true`. A saída guarda onde está o dado, nunca o valor.
+- **Silver protegida (Missão 6).** Cada campo pessoal do contrato declara a sua proteção (`protecao`):
+  `pseudonimo`, `remover` ou `manter`. O validador monta a silver a partir disso: o id do cliente vira `cliente_ps`
+  nas três tabelas, e nome, e-mail, CPF, `observacao` e `ip` não entram. `nascimento` e `cidade` ficam por enquanto,
+  como quase-identificadores; a Missão 7 registra a finalidade e generaliza. Campo pessoal sem proteção declarada
+  para o pipeline (regra como código). A proteção exigida para cada classe está em `seguranca/matriz.md`.
+- **Pseudônimo com HMAC.** `cliente_ps = HMAC-SHA-256(CHAVE_PSEUDONIMO, id)`. Um hash simples do id seria fácil de
+  desfazer (basta calcular o hash de 1, 2, 3…); com a chave, não. A mesma chave dá sempre o mesmo pseudônimo, por
+  isso pedidos, navegação e clientes continuam se ligando. A chave é criada por `seguranca/06b_criar_chave` e fica no
+  secret scope `lab_bd` do Databricks: não está no código, no repositório, nos logs nem nas evidências, e a
+  verificação procura o valor dela em todos os arquivos do repositório.
+- **Versão antiga da silver.** A silver das Missões 4 e 5 tinha nome, e-mail e CPF, e o Delta guarda versões
+  antigas. Na primeira execução protegida, o validador apaga a tabela e cria de novo, para que o time travel não
+  devolva a versão sem proteção. A verificação lê todas as versões da silver.
+- **Quarentena mascarada.** A linha reprovada continua na quarentena, mas os campos pessoais aparecem mascarados ou
+  como pseudônimo: quem corrige precisa saber o motivo e a linha, não o dado.
+- **Papéis: como a separação é garantida.** Dois grupos do Unity Catalog. `lab_pipeline` tem todas as permissões
+  nos schemas do laboratório; `lab_analistas` tem só `USE SCHEMA` e `SELECT` em `lab_silver` e `lab_gold`. O notebook
+  `seguranca/06c_papeis` aplica os `GRANT` e faz `REVOKE` do analista em origem, log, bronze, controle, qualidade e
+  leitores, mostra o que ficou valendo (inclusive permissões herdadas do catálogo) e para se o analista ainda lê a
+  bronze. As permissões ficam no código, então refazer o ambiente refaz os papéis. Na Free Edition há um usuário só,
+  dono e administrador, que enxerga tudo; a separação vale para quem entra nos grupos.
+- **Trajeto do CPF.** Real na origem, no log e na bronze; mascarado na quarentena; ausente na silver, na gold, no
+  varredor, no catálogo e nas evidências (`seguranca/trajeto_cpf.md`). A verificação mede cada etapa. A evidência
+  da Missão 2 mostrava o e-mail novo da cliente 3; passou a mostrar só que ele foi atualizado.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 

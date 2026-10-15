@@ -12,9 +12,13 @@
 # Classificação por campo (Missão 5):
 #   classe:            público | interno | confidencial | pessoal | pessoal sensível
 #   classe_encontrada_pelo_varredor: true   (o produtor não tinha declarado; o varredor achou dado pessoal)
+# Proteção na silver (Missão 6), obrigatória para todo campo pessoal:
+#   protecao:    pseudonimo  (vira a coluna cliente_ps = HMAC-SHA-256 do id com a CHAVE_PSEUDONIMO)
+#                remover     (não entra na silver; na quarentena aparece mascarado)
+#                manter      (entra como está; só para quase-identificador com finalidade a registrar)
 
 conjunto: pedidos
-versao: 2
+versao: 3
 descricao: Pedidos feitos na loja, um por linha, com valor, status e o cliente que comprou.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -31,6 +35,7 @@ campos:
     tipo: inteiro
     obrigatorio: true
     classe: pessoal
+    protecao: pseudonimo
   - nome: valor_centavos
     descricao: Valor do pedido em centavos.
     tipo: inteiro
@@ -54,4 +59,5 @@ campos:
     tipo: texto
     obrigatorio: false
     classe: pessoal
+    protecao: remover
     classe_encontrada_pelo_varredor: true
