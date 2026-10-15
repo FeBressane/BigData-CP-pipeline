@@ -1,0 +1,39 @@
+Missão 3 · um log, vários leitores (Trilha A, tópico Delta) · verificado em 2026-10-15 00:08
+
+[OK] 1. Durante a publicação, o leitor rápido fica no último evento e a bronze até 5 eventos atrás
+      maior número de eventos pendentes ao acordar: visitas 1, bronze 5
+[OK] 2. visitas: /carrinho com 2 visitas e as outras seis páginas com 1; bronze com os mesmos 8 eventos, sem duplicata
+      visitas {'/carrinho': 2, '/home': 1, '/produto/camiseta': 1, '/produto/fone': 1, '/produto/mochila': 1, '/produto/relogio': 1, '/produto/tenis': 1} · bronze 8 eventos (8 distintos)
+[OK] 3. Derrubar visitas depois do 4º evento e religar: retoma do offset salvo, mesmos totais, nada contado duas vezes
+      caiu na rodada 1 com o offset salvo em 3; religou na rodada 2 do offset 3 ao 8, 1 repetido(s) ignorado(s); total contado 8
+[OK] 4. Leitor novo: clientes 1 e 5 com 2 eventos, 2, 3 e 6 com 1, e 1 visitante sem cadastro
+      {1: 2, 2: 1, 3: 1, 5: 2, 'visitante': 1, 6: 1} · começou no offset 0
+[OK] 5. Depois de todos lerem, o log continua com os 8 eventos
+      tópico com 8 eventos
+
+Saída do leitor visitas (lab_leitores.visitas_por_pagina):
+  /carrinho            2
+  /home                1
+  /produto/camiseta    1
+  /produto/fone        1
+  /produto/mochila     1
+  /produto/relogio     1
+  /produto/tenis       1
+
+Saída do leitor por_cliente (lab_leitores.eventos_por_cliente):
+  cliente 1                2
+  cliente 2                1
+  cliente 3                1
+  cliente 5                2
+  cliente 6                1
+  visitante sem cadastro   1
+
+Saída do leitor bronze: 8 eventos em lab_bronze.navegacao
+
+Rodadas dos leitores (lab_controle.leituras):
+  visitas      rodada 1: offset 0 -> 3, leu 4, repetidos 0, pendentes ao acordar até 1 · CAIU antes de salvar o offset
+  bronze       rodada 1: offset 0 -> 8, leu 8, repetidos 0, pendentes ao acordar até 5
+  visitas      rodada 2: offset 3 -> 8, leu 5, repetidos 1, pendentes ao acordar até 5
+  por_cliente  rodada 1: offset 0 -> 8, leu 8, repetidos 0, pendentes ao acordar até 8
+
+O IP dos eventos não entra nesta evidência: é dado pessoal.
