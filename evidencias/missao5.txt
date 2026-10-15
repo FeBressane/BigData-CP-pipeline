@@ -1,0 +1,34 @@
+Missão 5 · governança, catálogo e varredor · verificado em 2026-10-15 00:43
+
+[OK] 1. Sem retenção em navegacao o pipeline para com mensagem clara; com o prazo de volta, passa
+      sem o prazo: conjunto 'navegacao' é de classe 'pessoal' e não tem prazo de retenção (retencao.prazo em governanca/acordo.yaml). Dado pessoal sem prazo para sair não pode seguir no pipeline: definam o prazo e rodem de novo. · com o prazo: 0 violação(ões)
+[OK] 2. O varredor aponta a observacao dos pedidos 104 e 106 e a coluna ip nos 8 eventos
+      observacao: e-mail em 104, telefone em 106 · ip: 8 eventos
+[OK] 3. Mudar uma descrição no contrato e regerar: o catálogo reflete sem edição manual
+      descrição nova aparece no catálogo regerado: sim · governanca/catalogo.md gerado e em dia com os contratos: sim
+
+Acordo de governança (governanca/acordo.yaml):
+  clientes   classe pessoal   · dono: time de Cadastro e Atendimento · retenção: enquanto o cliente tiver conta ativa
+  pedidos    classe pessoal   · dono: time de Vendas · retenção: 5 anos após o fim do ano do pedido
+  navegacao  classe pessoal   · dono: time do Site · retenção: 90 dias
+
+Mensagem da regra como código quando falta o prazo da navegação:
+  O pipeline parou: o acordo de governança não foi cumprido.
+    - conjunto 'navegacao' é de classe 'pessoal' e não tem prazo de retenção (retencao.prazo em governanca/acordo.yaml). Dado pessoal sem prazo para sair não pode seguir no pipeline: definam o prazo e rodem de novo.
+
+Saída do varredor (lab_qualidade.varredura; só onde, nunca o valor):
+  tabela                     coluna      padrão    linhas  chaves                situação
+  lab_bronze.clientes        cpf         CPF            6  id 1, 2, 3, 4, 6, 7   declarado
+  lab_bronze.clientes        email       e-mail         6  id 1, 2, 3, 4, 6, 7   declarado
+  lab_bronze.navegacao       ip          IP             8  evento_id 1, 2, 3, 4, 5, 6,... achado pelo varredor (contrato corrigido)
+  lab_bronze.pedidos         observacao  e-mail         1  id 104                achado pelo varredor (contrato corrigido)
+  lab_bronze.pedidos         observacao  telefone       1  id 106                achado pelo varredor (contrato corrigido)
+  lab_log.mudancas           dados       CPF            3  seq 2, 3, 5           fora do contrato (outra morada do dado)
+  lab_log.mudancas           dados       e-mail         3  seq 2, 3, 5           fora do contrato (outra morada do dado)
+  lab_log.navegacao          ip          IP             8  evento_id 1, 2, 3, 4, 5, 6,... fora do contrato (outra morada do dado)
+
+Colunas com dado pessoal não declarado no contrato: 0
+O produtor não tinha declarado a observacao dos pedidos nem o ip da navegação como pessoais. O varredor
+achou os dois; os contratos foram corrigidos (classe pessoal, classe_encontrada_pelo_varredor: true).
+O log de mudanças (lab_log.mudancas) e o tópico (lab_log.navegacao) também guardam esses dados: são
+outras moradas e entram no inventário da Missão 8.
