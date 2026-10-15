@@ -1,0 +1,33 @@
+Missão 6 · segurança, pseudônimo e papéis · verificado em 2026-10-15 23:57
+
+[OK] 1. Busca por @, CPFs, telefones e IPs na silver: nenhuma ocorrência
+      3 tabelas, 3 versões lidas por time travel · ocorrências: 0 · colunas proibidas: nenhuma
+[OK] 2. Mesma chave gera os mesmos pseudônimos; outra chave muda todos
+      mesma chave, duas vezes: iguais · outra chave: 7 de 7 mudaram · clientes: 6/6 linhas com o pseudônimo certo · pedidos: 11/11 linhas com o pseudônimo certo · navegacao: 8/8 linhas com o pseudônimo certo · cliente 1 com o mesmo cliente_ps em: clientes, pedidos, navegacao
+[OK] 3. O valor da chave não aparece em lugar nenhum do repositório
+      55 arquivos lidos · com a chave: nenhum · a chave fica em: secret scope lab_bd
+
+Silver (colunas atuais):
+  clientes   cliente_ps, nascimento, cidade, atualizado_em
+  navegacao  evento_id, cliente_ps, pagina, quando
+  pedidos    id, cliente_ps, valor_centavos, status, criado_em
+
+Pseudônimo do cliente 1 (12 primeiros caracteres): d9e09a7b6b38… · HMAC-SHA-256, 64 caracteres
+
+Trajeto do CPF (medido agora):
+  origem (lab_origem.clientes.cpf)              real (6 linhas)
+  log de mudanças (lab_log.mudancas.dados)      real (3 linhas)
+  bronze (lab_bronze.clientes.cpf)              real (6 linhas)
+  quarentena (lab_qualidade.quarentena.dados)   ausente · nenhum cliente reprovado; se houver, máscara
+  silver (lab_silver.clientes)                  ausente (coluna não existe)
+  gold (lab_gold)                               ausente (o lugar não existe ainda)
+  varredor (lab_qualidade.varredura)            ausente (guarda onde está, nunca o valor)
+  catálogo e evidências (arquivos .md/.txt)     ausente
+
+Papéis (SHOW GRANTS por schema):
+  lab_bronze     só o dono
+  lab_log        só o dono
+  lab_origem     só o dono
+  lab_qualidade  só o dono
+  lab_silver     só o dono
+  lab_gold       só o dono
