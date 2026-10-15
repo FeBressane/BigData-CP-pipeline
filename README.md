@@ -50,16 +50,15 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    A partir da Missão 2, `clientes` e `pedidos` chegam à bronze pelo log. A carga por marca-d'água
    (`01_carga_incremental`) fica como registro da Missão 1 e segue valendo para a `navegacao` até a Missão 3.
 
-5. Missão 3 (os leitores rodam ao mesmo tempo, cada um numa aba, todos na computação Serverless):
-   1. `ingestao/03a_preparar_topico` (tópico vazio, offsets apagados, bronze.navegacao vazia)
-   2. Abrir `ingestao/03c_leitor_visitas`, pôr "Cair no evento" = `4` e rodar. Ele fica esperando eventos
-      (até 10 minutos; o produtor precisa ser disparado dentro desse prazo).
-   3. Em outra aba, abrir `ingestao/03d_leitor_bronze` e rodar. Também fica esperando.
-   4. Em outra aba, rodar `ingestao/03b_produtor`: publica os 8 eventos, um por segundo.
-      O `visitas` cai depois do 4º evento (erro proposital); a bronze segue gravando em rajadas.
-   5. Quando o produtor terminar, voltar ao `03c_leitor_visitas`, pôr "Cair no evento" = `0` e rodar de novo.
-   6. `ingestao/03e_leitor_por_cliente` (liga depois de tudo publicado e lê desde o offset 0)
-   7. `ingestao/03f_verificar_missao3` (confere e grava `evidencias/missao3.txt`)
+5. Missão 3:
+   1. `ingestao/03_simular` (um Run all faz tudo: prepara o tópico, publica os 8 eventos com os leitores
+      acordando no seu ritmo, derruba o `visitas` no 4º evento, religa, e liga o leitor novo `por_cliente`)
+   2. `ingestao/03f_verificar_missao3` (confere e grava `evidencias/missao3.txt`)
+
+   Alternativa em tempo real, com os leitores em abas separadas: `03a_preparar_topico`, depois
+   `03c_leitor_visitas` (com "Cair no evento" = 4) e `03d_leitor_bronze` rodando ao mesmo tempo, então
+   `03b_produtor`; ao fim, religar o `03c` com 0 e rodar `03e_leitor_por_cliente`. Os leitores esperam até
+   10 minutos pelo primeiro evento.
 
 _Os próximos passos entram a cada missão._
 
@@ -99,9 +98,12 @@ _Os próximos passos entram a cada missão._
   - Escolhemos não perder eventos e tornar o processamento idempotente: cada leitor registra o `evento_id`
     que já contou e ignora repetidos. O teste derruba o `visitas` depois do 4º evento, antes de salvar o
     offset; ao religar, ele relê o 4º evento, reconhece que já foi contado e chega aos mesmos totais.
-- **Latência no Databricks serverless.** Cada escrita numa tabela Delta leva cerca de 1 a 2 segundos, então
-  "um evento por segundo" e "leitor na hora" ficam um pouco mais lentos que num broker de verdade. A
-  diferença de ritmo entre o leitor rápido (acorda a cada 0,5 s) e a bronze (a cada 5 s) continua visível.
+- **Latência no Databricks serverless e relógio lógico.** Cada escrita numa tabela Delta leva de 1 a 3
+  segundos, então "um evento por segundo" fica mais lento que num broker de verdade, e coordenar três abas
+  à mão no tempo certo se mostrou frágil (os leitores encerravam antes de o produtor publicar). O
+  `03_simular` intercala produtor e leitores num só notebook e conta o tempo em ticks: 1 tick = 1 evento
+  publicado = 1 segundo do laboratório. O `visitas` acorda a cada tick e a bronze a cada 5 ticks, a mesma
+  proporção do exercício.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
