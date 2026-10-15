@@ -1,0 +1,28 @@
+Missão 4 · contrato, validação e quarentena · verificado em 2026-10-15 00:20
+
+[OK] 1. Do lote do dia 3, 2 linhas são aceitas (pedidos 110 e 115) e 5 vão para a quarentena
+      lote com 7 linhas · aceitos [110, 115] · quarentena 5
+[OK] 2. Cada linha em quarentena traz um motivo diferente: valor negativo, cliente ausente, status fora do domínio, chave repetida e data no futuro
+      chave repetida; cliente ausente; data no futuro; status fora do domínio; valor negativo
+[OK] 3. Camada silver: 11 pedidos. Receita paga: R$ 844,90
+      11 pedidos · receita paga R$ 844,90
+[OK] 4. Sem a validação, o mesmo cálculo daria R$ 932,90
+      receita somando tudo o que chegou, sem contrato: R$ 932,90
+
+Contratos lidos pelo validador: contratos/pedidos.yaml, contratos/clientes.yaml, contratos/navegacao.yaml
+
+Quarentena do lote pedidos_dia3.csv (lab_qualidade.quarentena):
+  linha  pedido  motivo
+  2      111     valor_centavos abaixo do mínimo 0 · execução 1
+  3      112     cliente_id obrigatório ausente · execução 1
+  4      113     status fora do domínio [pendente, pago, cancelado] · execução 1
+  5      110     id repetido (chave já recebida) · execução 1
+  6      114     criado_em no futuro (depois do momento da carga) · execução 1
+
+Execuções da validação (lab_controle.validacoes):
+  execução 1 · clientes   contrato v1, 17 regras · lidas 6, aceitas 6, quarentena 0
+  execução 1 · navegacao  contrato v1, 11 regras · lidas 8, aceitas 8, quarentena 0
+  execução 1 · pedidos    contrato v1, 15 regras · lidas 16, aceitas 11, quarentena 5
+
+A diferença de R$ 88,00 entre os dois números é receita que não existe: valor negativo, pedido sem
+cliente, pedido de 2031 e o pedido 110 contado duas vezes. Sem o contrato, o pipeline terminaria sem erro.
