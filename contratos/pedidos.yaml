@@ -1,0 +1,39 @@
+# Contrato de dados · pedidos
+# O validador (qualidade/04b_validar) lê as regras deste arquivo. Nada fica fixo no código.
+#
+# Regras aceitas por campo:
+#   tipo:        inteiro | texto | data | data_hora
+#   obrigatorio: true | false
+#   unico:       true            (a primeira ocorrência passa; as seguintes vão para a quarentena)
+#   minimo:      número
+#   maximo:      momento da carga (para datas: não pode estar no futuro)
+#   dominio:     [lista de valores aceitos]
+
+conjunto: pedidos
+versao: 1
+dono: a definir na Missão 5
+classe: a definir na Missão 5
+frescor: até 24 horas depois da mudança na origem
+campos:
+  - nome: id
+    tipo: inteiro
+    obrigatorio: true
+    unico: true
+  - nome: cliente_id
+    tipo: inteiro
+    obrigatorio: true
+  - nome: valor_centavos
+    tipo: inteiro
+    obrigatorio: true
+    minimo: 0
+  - nome: status
+    tipo: texto
+    obrigatorio: true
+    dominio: [pendente, pago, cancelado]
+  - nome: criado_em
+    tipo: data_hora
+    obrigatorio: true
+    maximo: momento da carga
+  - nome: observacao
+    tipo: texto
+    obrigatorio: false

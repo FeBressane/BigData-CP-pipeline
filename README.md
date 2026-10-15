@@ -60,6 +60,11 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    `03b_produtor`; ao fim, religar o `03c` com 0 e rodar `03e_leitor_por_cliente`. Os leitores esperam até
    10 minutos pelo primeiro evento.
 
+6. Missão 4:
+   1. `ingestao/04a_carregar_lote_dia3` (o lote do dia 3 entra na bronze como chegou)
+   2. `qualidade/04b_validar` (lê `contratos/*.yaml` e separa silver e quarentena)
+   3. `qualidade/04c_verificar_missao4` (confere e grava `evidencias/missao4.txt`)
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -104,6 +109,18 @@ _Os próximos passos entram a cada missão._
   `03_simular` intercala produtor e leitores num só notebook e conta o tempo em ticks: 1 tick = 1 evento
   publicado = 1 segundo do laboratório. O `visitas` acorda a cada tick e a bronze a cada 5 ticks, a mesma
   proporção do exercício.
+- **Contrato e quarentena (Missão 4).** Os contratos ficam em `contratos/*.yaml`. O validador
+  (`qualidade/04b_validar`) lê o arquivo e transforma cada regra (`tipo`, `obrigatorio`, `unico`, `minimo`,
+  `maximo`, `dominio`) numa expressão SQL; nenhuma regra fica fixa no código. Linha aprovada vai para
+  `lab_silver.<conjunto>`; reprovada vai para `lab_qualidade.quarentena` com todos os motivos e a execução em
+  que chegou. A silver é recalculada a partir da bronze a cada execução, e a quarentena é mesclada por
+  origem + linha: rodar de novo não duplica nada.
+- **O lote por arquivo fica na bronze como chegou.** `lab_bronze.pedidos_lote` guarda as linhas do CSV com
+  todas as colunas como texto, mais o nome do arquivo e o número da linha. Assim a bronze não corrige nem
+  descarta nada, e um valor que nem é número também pode ser barrado pela regra de tipo.
+- **Chave repetida:** a primeira ocorrência passa; as seguintes vão para a quarentena.
+- **Silver provisória.** Nesta missão a silver guarda as colunas do contrato como estão. Na Missão 6 ela é
+  refeita sem nome, e-mail, CPF, observação nem IP, com o pseudônimo no lugar do id do cliente.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 

@@ -1,0 +1,27 @@
+# Contrato de dados · navegacao
+# Mesmo formato de contratos/pedidos.yaml. Dono e classe de cada campo entram na Missão 5.
+# cliente_id é opcional: o visitante sem cadastro não tem cliente.
+
+conjunto: navegacao
+versao: 1
+dono: a definir na Missão 5
+classe: a definir na Missão 5
+frescor: até 5 segundos depois da publicação no tópico
+campos:
+  - nome: evento_id
+    tipo: inteiro
+    obrigatorio: true
+    unico: true
+  - nome: cliente_id
+    tipo: inteiro
+    obrigatorio: false
+  - nome: ip
+    tipo: texto
+    obrigatorio: true
+  - nome: pagina
+    tipo: texto
+    obrigatorio: true
+  - nome: quando
+    tipo: data_hora
+    obrigatorio: true
+    maximo: momento da carga

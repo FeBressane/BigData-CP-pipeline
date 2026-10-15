@@ -1,0 +1,33 @@
+# Contrato de dados · clientes
+# Mesmo formato de contratos/pedidos.yaml. Dono e classe de cada campo entram na Missão 5.
+
+conjunto: clientes
+versao: 1
+dono: a definir na Missão 5
+classe: a definir na Missão 5
+frescor: até 24 horas depois da mudança na origem
+campos:
+  - nome: id
+    tipo: inteiro
+    obrigatorio: true
+    unico: true
+  - nome: nome
+    tipo: texto
+    obrigatorio: true
+  - nome: email
+    tipo: texto
+    obrigatorio: true
+  - nome: cpf
+    tipo: texto
+    obrigatorio: true
+  - nome: nascimento
+    tipo: data
+    obrigatorio: true
+    maximo: momento da carga
+  - nome: cidade
+    tipo: texto
+    obrigatorio: true
+  - nome: atualizado_em
+    tipo: data_hora
+    obrigatorio: true
+    maximo: momento da carga
