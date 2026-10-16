@@ -15,10 +15,13 @@
 # Proteção na silver (Missão 6), obrigatória para todo campo pessoal:
 #   protecao:    pseudonimo  (vira a coluna cliente_ps = HMAC-SHA-256 do id com a CHAVE_PSEUDONIMO)
 #                remover     (não entra na silver; na quarentena aparece mascarado)
-#                manter      (entra como está; só para quase-identificador com finalidade a registrar)
+#                faixa_etaria (data de nascimento vira faixa: 18–24, 25–34, 35–44, 45–54, 55–64, 65+)
+#                manter      (entra como está)
+#   finalidade:  para que serve na silver. Obrigatória para todo campo pessoal que não é removido (Missão 7):
+#                campo pessoal sem finalidade sai da silver.
 
 conjunto: pedidos
-versao: 3
+versao: 4
 descricao: Pedidos feitos na loja, um por linha, com valor, status e o cliente que comprou.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -36,6 +39,7 @@ campos:
     obrigatorio: true
     classe: pessoal
     protecao: pseudonimo
+    finalidade: contar clientes e ligar o pedido à cidade do cliente
   - nome: valor_centavos
     descricao: Valor do pedido em centavos.
     tipo: inteiro

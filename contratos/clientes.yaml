@@ -2,7 +2,7 @@
 # Mesmo formato de contratos/pedidos.yaml.
 
 conjunto: clientes
-versao: 3
+versao: 4
 descricao: Cadastro das pessoas que compram na loja.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -15,6 +15,7 @@ campos:
     unico: true
     classe: pessoal
     protecao: pseudonimo
+    finalidade: ligar pedidos e navegação ao mesmo cliente sem identificá-lo
   - nome: nome
     descricao: Nome completo.
     tipo: texto
@@ -39,13 +40,15 @@ campos:
     obrigatorio: true
     maximo: momento da carga
     classe: pessoal
-    protecao: manter  # quase-identificador; a Missão 7 decide a finalidade e generaliza
+    protecao: faixa_etaria
+    finalidade: público por faixa etária; a data exata não tem uso, então só a faixa entra na silver
   - nome: cidade
     descricao: Cidade do cliente.
     tipo: texto
     obrigatorio: true
     classe: pessoal
-    protecao: manter  # quase-identificador; a Missão 7 decide a finalidade
+    protecao: manter
+    finalidade: receita e público por cidade (visão gold receita_por_cidade, com limiar K)
   - nome: atualizado_em
     descricao: Última alteração do cadastro na origem.
     tipo: data_hora

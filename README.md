@@ -84,6 +84,12 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    4. `seguranca/06c_papeis` (grupos `lab_pipeline` e `lab_analistas`, permissões como código)
    5. `seguranca/06d_verificar_missao6` (confere e grava `evidencias/missao6.txt`, com o trajeto do CPF)
 
+9. Missão 7:
+   1. `qualidade/04b_validar` (a silver troca o nascimento pela faixa etária)
+   2. `governanca/05b_gerar_catalogo` (o catálogo mostra a finalidade de cada campo pessoal)
+   3. `privacidade/07a_visao_consumo` (mede o K e cria `lab_gold.receita_por_cidade` com K = 2)
+   4. `privacidade/07b_verificar_missao7` (confere e grava `evidencias/missao7.txt`)
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -196,6 +202,14 @@ _Os próximos passos entram a cada missão._
 - **Trajeto do CPF.** Real na origem, no log e na bronze; mascarado na quarentena; ausente na silver, na gold, no
   varredor, no catálogo e nas evidências (`seguranca/trajeto_cpf.md`). A verificação mede cada etapa. A evidência
   da Missão 2 mostrava o e-mail novo da cliente 3; passou a mostrar só que ele foi atualizado.
+- **Finalidade (Missão 7).** Todo campo pessoal que fica na silver tem `finalidade` no contrato; sem finalidade,
+  o campo sai, e a regra como código para o pipeline se faltar. A tabela está em `privacidade/finalidades.md`.
+- **Pseudônimo não é anônimo.** Cidade e faixa etária são quase-identificadores. A data de nascimento virou faixa
+  etária (a data exata não tinha finalidade) e o K da tabela de clientes é medido a cada execução
+  (`lab_controle.medicoes_k`): com cidade + faixa, 4 combinações têm uma pessoa só (K = 1).
+- **Visão de consumo com limiar K.** `lab_gold.receita_por_cidade` mostra cidade, número de clientes e receita paga.
+  Cidade com menos de K = 2 clientes não aparece pelo nome. A receita dela vai para uma linha só, junto com os pedidos
+  sem cliente, para que ninguém a recalcule subtraindo as outras cidades do total; a soma continua R$ 844,90.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 

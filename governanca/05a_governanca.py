@@ -12,6 +12,7 @@
 # MAGIC 3. Todo campo do contrato tem classe, e a classe do conjunto é a do **campo mais sensível**.
 # MAGIC 4. A classe do conjunto no acordo é a mesma do contrato.
 # MAGIC 5. Todo campo pessoal declara como é protegido na silver (`protecao`: pseudonimo, remover ou manter). (Missão 6)
+# MAGIC 6. Todo campo pessoal que fica na silver tem `finalidade`; campo pessoal sem finalidade sai. (Missão 7)
 # MAGIC
 # MAGIC Também ficam aqui as funções que o gerador do catálogo (`05b`) e a verificação (`05d`) usam.
 # MAGIC Rodado sozinho, ele só confere as regras e mostra o resultado.
@@ -30,7 +31,7 @@ except ImportError:
 RAIZ_REPO = os.path.abspath(os.path.join(os.getcwd(), ".."))
 CLASSES = ["público", "interno", "confidencial", "pessoal", "pessoal sensível"]
 CLASSES_COM_RETENCAO = {"pessoal", "pessoal sensível"}
-PROTECOES = ["pseudonimo", "remover", "manter"]
+PROTECOES = ["pseudonimo", "remover", "faixa_etaria", "manter"]
 # Padrões de dado pessoal (expressões regulares Java, usadas pelo rlike do Spark): varredor (05c) e Missão 6
 PADROES_PESSOAIS = {
     "e-mail": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+",
@@ -92,6 +93,12 @@ def verificar_regras(contratos: dict, acordo: dict) -> list:
         if sem_protecao:
             erros.append(f"contrato '{nome}': campo(s) pessoal(is) sem proteção para a silver: "
                          f"{', '.join(sem_protecao)}. Declarem protecao: {' | '.join(PROTECOES)}.")
+        sem_finalidade = [c["nome"] for c in campos if c.get("classe") in CLASSES_COM_RETENCAO
+                          and c.get("protecao") in PROTECOES and c.get("protecao") != "remover"
+                          and not str(c.get("finalidade") or "").strip()]
+        if sem_finalidade:
+            erros.append(f"contrato '{nome}': campo(s) pessoal(is) na silver sem finalidade: "
+                         f"{', '.join(sem_finalidade)}. Registrem a finalidade ou removam (protecao: remover).")
         if sum(1 for c in campos if c.get("protecao") == "pseudonimo") > 1:
             erros.append(f"contrato '{nome}': só o campo que identifica o cliente vira pseudônimo (cliente_ps).")
         esperada = classe_mais_sensivel(c.get("classe") for c in campos)
@@ -193,7 +200,9 @@ def gerar_catalogo(contratos: dict, acordo: dict, metadados: dict = None, gerado
                 regras.append("um de: " + ", ".join(map(str, f["dominio"])))
             classe = f.get("classe", "—") + (" ⚠ achado pelo varredor" if f.get("classe_encontrada_pelo_varredor") else "")
             silver = {"pseudonimo": "pseudônimo `cliente_ps`", "remover": "removido",
-                      "manter": "mantido"}.get(f.get("protecao"), "mantido")
+                      "faixa_etaria": "faixa etária", "manter": "mantido"}.get(f.get("protecao"), "mantido")
+            if f.get("finalidade"):
+                silver += f" · finalidade: {_txt(f['finalidade'])}"
             linhas.append(f"| `{f['nome']}` | {f.get('tipo')} | {classe} | {silver} | {', '.join(regras) or '—'} | "
                           f"{_txt(f.get('descricao'))} |")
     linhas += ["", "---", "", "Classes, da menos para a mais sensível: " + " < ".join(CLASSES) + ".",

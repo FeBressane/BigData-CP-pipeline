@@ -59,7 +59,7 @@ def ocorrencias(df, padroes=PADROES_BUSCA):
 # 1. Busca na silver, na versão atual e em todas as versões guardadas pelo Delta
 proibidas = {}
 for nome, c in contratos.items():
-    proibidas[nome] = {f["nome"] for f in c["campos"] if f.get("protecao") in ("remover", "pseudonimo")}
+    proibidas[nome] = {f["nome"] for f in c["campos"] if f.get("protecao") in ("remover", "pseudonimo", "faixa_etaria")}
 busca, versoes_vistas, colunas_proibidas = {}, 0, []
 for t in tabelas(SILVER):
     historico = spark.sql(f"DESCRIBE HISTORY {SILVER}.{t}").select("version").collect()

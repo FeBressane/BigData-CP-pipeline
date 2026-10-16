@@ -102,6 +102,8 @@ def expr_silver(campo: dict):
         return None
     if protecao == "pseudonimo":
         return f"pseudonimo(CAST({tipado} AS STRING)) AS cliente_ps"
+    if protecao == "faixa_etaria":
+        return f"{sql_faixa_etaria(tipado)} AS faixa_etaria"
     return f"{tipado} AS `{nome}`"
 
 
@@ -112,6 +114,8 @@ def expr_quarentena(campo: dict) -> str:
         return f"pseudonimo(CAST(try_cast(`{nome}` AS {TIPOS[campo['tipo']]}) AS STRING))"
     if protecao == "remover":
         return sql_mascara(f"`{nome}`")
+    if protecao == "faixa_etaria":
+        return sql_faixa_etaria(f"try_cast(`{nome}` AS {TIPOS[campo['tipo']]})")
     return f"`{nome}`"
 
 
@@ -170,7 +174,7 @@ for conjunto in CONJUNTOS:
     tipadas = ", ".join(e for e in (expr_silver(c) for c in contrato["campos"]) if e)
     # Se a silver existente ainda tem colunas que agora são protegidas (versão sem proteção), ela é apagada antes:
     # assim as versões antigas, com dado pessoal, não ficam acessíveis por time travel na tabela nova.
-    protegidos = {c["nome"] for c in contrato["campos"] if c.get("protecao") in ("remover", "pseudonimo")}
+    protegidos = {c["nome"] for c in contrato["campos"] if c.get("protecao") in ("remover", "pseudonimo", "faixa_etaria")}
     if spark.catalog.tableExists(f"{SILVER}.{conjunto}") and protegidos & set(spark.table(f"{SILVER}.{conjunto}").columns):
         spark.sql(f"DROP TABLE {SILVER}.{conjunto}")
         print(f"{conjunto}: silver antiga, sem proteção, apagada")

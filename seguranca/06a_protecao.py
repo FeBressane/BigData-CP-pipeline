@@ -73,3 +73,11 @@ def sql_mascara(expr: str) -> str:
     return (f"CASE WHEN {expr} IS NULL OR length({expr}) <= 2 THEN {expr} ELSE "
             f"concat(regexp_replace(substr({expr}, 1, length({expr}) - 2), '[0-9A-Za-zÀ-ÿ]', '*'), "
             f"substr({expr}, -2)) END")
+
+
+def sql_faixa_etaria(expr_data: str) -> str:
+    """Generaliza a data de nascimento em faixa etária, com a idade na data da execução (Missão 7)."""
+    idade = f"floor(months_between(current_date(), {expr_data}) / 12)"
+    return (f"CASE WHEN {expr_data} IS NULL THEN NULL WHEN {idade} < 18 THEN 'menos de 18' "
+            f"WHEN {idade} < 25 THEN '18–24' WHEN {idade} < 35 THEN '25–34' WHEN {idade} < 45 THEN '35–44' "
+            f"WHEN {idade} < 55 THEN '45–54' WHEN {idade} < 65 THEN '55–64' ELSE '65+' END")
