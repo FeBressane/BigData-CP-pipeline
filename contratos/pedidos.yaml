@@ -9,6 +9,7 @@
 #   minimo:      número
 #   maximo:      momento da carga (para datas: não pode estar no futuro)
 #   dominio:     [lista de valores aceitos]
+#   anonimizavel: true       (obrigatório, mas pode ficar vazio na linha anonimizada por um pedido de eliminação)
 # Classificação por campo (Missão 5):
 #   classe:            público | interno | confidencial | pessoal | pessoal sensível
 #   classe_encontrada_pelo_varredor: true   (o produtor não tinha declarado; o varredor achou dado pessoal)
@@ -21,7 +22,7 @@
 #                campo pessoal sem finalidade sai da silver.
 
 conjunto: pedidos
-versao: 4
+versao: 5
 descricao: Pedidos feitos na loja, um por linha, com valor, status e o cliente que comprou.
 dono: ver governanca/acordo.yaml
 classe: pessoal
@@ -37,6 +38,7 @@ campos:
     descricao: Cliente que fez o pedido. Liga o pedido a uma pessoa.
     tipo: inteiro
     obrigatorio: true
+    anonimizavel: true  # pode ficar vazio quando o cliente pediu a eliminação (pedido em lab_controle.anonimizados)
     classe: pessoal
     protecao: pseudonimo
     finalidade: contar clientes e ligar o pedido à cidade do cliente

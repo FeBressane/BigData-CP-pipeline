@@ -90,6 +90,12 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
    3. `privacidade/07a_visao_consumo` (mede o K e cria `lab_gold.receita_por_cidade` com K = 2)
    4. `privacidade/07b_verificar_missao7` (confere e grava `evidencias/missao7.txt`)
 
+10. Missão 8:
+    1. `privacidade/08a_esquecer` com o widget "Cliente a esquecer" = `5` (trata todas as moradas e grava a lista)
+    2. `qualidade/04b_validar` (refaz a silver da bronze: os números têm que bater)
+    3. `governanca/05c_varredor` (refaz a saída do varredor sem os eventos dela)
+    4. `privacidade/08b_verificar_missao8` (confere, roda o esquecer de novo e grava `evidencias/missao8.txt`)
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -210,6 +216,15 @@ _Os próximos passos entram a cada missão._
 - **Visão de consumo com limiar K.** `lab_gold.receita_por_cidade` mostra cidade, número de clientes e receita paga.
   Cidade com menos de K = 2 clientes não aparece pelo nome. A receita dela vai para uma linha só, junto com os pedidos
   sem cliente, para que ninguém a recalcule subtraindo as outras cidades do total; a soma continua R$ 844,90.
+- **Esquecer de verdade (Missão 8).** `privacidade/moradas.md` lista as 22 moradas da cliente 5 e a técnica de cada
+  uma. O comando `esquecer <id>` apaga cadastro, cliques e eventos (origem, tópico, leitores, bronze, silver),
+  apaga os dados do evento de exclusão no log (o evento fica, para reaplicar a exclusão numa cópia antiga) e deixa o
+  pedido 106 sem pessoa: `cliente_id`, observação e `cliente_ps` vazios, valor na receita. O contrato marca
+  `cliente_id` como `anonimizavel`, então o 106 não vai para a quarentena. Rodar de novo encontra 0 linhas.
+- **Lista de eliminação sem dado pessoal.** A chave é o pseudônimo HMAC do cliente, nunca o id ou o nome. Depois de
+  restaurar uma cópia, o comando reaplica a lista calculando o pseudônimo de cada id da cópia.
+- **Histórico do Delta.** Versões antigas e o Change Data Feed também guardam o dado. O comando roda `VACUUM`; no
+  serverless não dá para encurtar o prazo de retenção, então as versões antigas somem em até 7 dias.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 

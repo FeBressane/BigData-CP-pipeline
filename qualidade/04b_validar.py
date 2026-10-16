@@ -66,6 +66,12 @@ CREATE TABLE IF NOT EXISTS {CONTROLE}.validacoes (
   quarentena BIGINT, validado_em TIMESTAMP
 ) COMMENT 'Uma linha por conjunto em cada execução da validação'
 """)
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS {CONTROLE}.anonimizados (
+  conjunto STRING, chave STRING COMMENT 'Chave da linha (ex.: id do pedido), nunca dado pessoal',
+  motivo STRING, anonimizado_em TIMESTAMP
+) COMMENT 'Linhas que ficaram sem pessoa por um pedido de eliminação (Missão 8)'
+""")
 EXECUCAO = spark.sql(f"SELECT COALESCE(MAX(execucao), 0) + 1 AS n FROM {CONTROLE}.validacoes").first().n
 print(f"Validação · execução {EXECUCAO} · conjuntos {', '.join(CONJUNTOS)}")
 print(f"Pseudônimo: chave lida de {registrar_pseudonimo()}")
@@ -127,7 +133,9 @@ def regras_sql(contrato: dict):
         bruto, tipado = f"c.`{nome}`", f"try_cast(c.`{nome}` AS {tipo})"
         vazio = f"({bruto} IS NULL OR trim({bruto}) = '')"
         if campo.get("obrigatorio"):
-            regras.append(f"CASE WHEN {vazio} THEN '{nome} obrigatório ausente' END")
+            # anonimizavel: a linha anonimizada por um pedido de eliminação (Missão 8) pode ficar sem o valor
+            excecao = " AND NOT c._anonimizado" if campo.get("anonimizavel") else ""
+            regras.append(f"CASE WHEN {vazio}{excecao} THEN '{nome} obrigatório ausente' END")
         regras.append(f"CASE WHEN NOT {vazio} AND {tipado} IS NULL THEN '{nome} não é do tipo {campo['tipo']}' END")
         if "minimo" in campo:
             regras.append(f"CASE WHEN {tipado} < {campo['minimo']} THEN '{nome} abaixo do mínimo {campo['minimo']}' END")
@@ -163,7 +171,11 @@ for conjunto in CONJUNTOS:
         cols = ", ".join(f"CAST(`{c}` AS STRING) AS `{c}`" for c in campos)
         partes.append(f"SELECT {cols}, '{origem}' AS _origem, CAST({id_linha} AS STRING) AS _linha, "
                       f"{ordem} AS _ordem, CAST({id_linha} AS BIGINT) AS _pos FROM {tabela}")
-    spark.sql(" UNION ALL ".join(partes)).createOrReplaceTempView("_candidatas")
+    spark.sql(" UNION ALL ".join(partes)).createOrReplaceTempView("_candidatas_brutas")
+    # linhas anonimizadas pelo comando esquecer (Missão 8): o contrato aceita o cliente vazio nelas
+    spark.sql(f"""SELECT b.*, (a.chave IS NOT NULL) AS _anonimizado FROM _candidatas_brutas b
+                   LEFT JOIN (SELECT DISTINCT chave FROM {CONTROLE}.anonimizados WHERE conjunto = '{conjunto}') a
+                   ON a.chave = b.`{chave}`""").createOrReplaceTempView("_candidatas")
 
     spark.sql(f"""
       SELECT c.*, concat_ws('; ', {", ".join(regras)}) AS _motivo
