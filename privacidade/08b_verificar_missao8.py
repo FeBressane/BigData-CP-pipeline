@@ -58,7 +58,9 @@ for schema in SCHEMAS:
         df = spark.table(f"{CATALOGO}.{schema}.{t}")
         tabelas_lidas += 1
         textos = [f.name for f in df.schema.fields if f.dataType.simpleString() == "string"]
-        for i, termo in enumerate(TERMOS + [PS5], 1):
+        # a lista de eliminação guarda o pseudônimo de propósito (é a chave dela): lá só se buscam os 4 termos
+        termos = TERMOS if f"{schema}.{t}" == "lab_controle.eliminacoes" else TERMOS + [PS5]
+        for i, termo in enumerate(termos, 1):
             for col in textos:
                 n = df.where(F.col(col).contains(termo)).count()
                 if n:
@@ -115,7 +117,8 @@ checks = [
     ("Buscas pelos 4 termos da cliente 5 na origem, log, bronze e silver: nada",
      busca_ok,
      f"{tabelas_lidas} tabelas e visões em {len(SCHEMAS)} schemas · ocorrências: "
-     + ("; ".join(f"{a} ({d}, {n})" for a, d, n in achados) or "nenhuma (nem do pseudônimo dela)")),
+     + ("; ".join(f"{a} ({d}, {n})" for a, d, n in achados)
+        or "nenhuma; o pseudônimo dela só existe como chave da lista de eliminação")),
     ("Depois: 6 eventos, 11 pedidos, receita R$ 844,90; visão de consumo igual",
      numeros_ok,
      f"{eventos} eventos · {ped.n} pedidos · receita paga {reais(ped.r)} · pedido 106: cliente_ps "
