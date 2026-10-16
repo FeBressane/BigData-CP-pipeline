@@ -1,0 +1,35 @@
+Missão 8 · direito ao esquecimento · verificado em 2026-10-16 01:46
+
+[OK] 1. Buscas pelos 4 termos da cliente 5 na origem, log, bronze e silver: nada
+      28 tabelas e visões em 8 schemas · ocorrências: nenhuma; o pseudônimo dela só existe como chave da lista de eliminação
+[OK] 2. Depois: 6 eventos, 11 pedidos, receita R$ 844,90; visão de consumo igual
+      6 eventos · 11 pedidos · receita paga R$ 844,90 · pedido 106: cliente_ps vazio, R$ 159,00 · visão: igual à da Missão 7
+[OK] 3. Lista de eliminação com 1 registro e nenhum dado pessoal
+      1 registro(s) · dado pessoal na lista: nenhum
+[OK] 4. Rodar esquecer 5 de novo não falha nem muda nada
+      segunda execução: 0 linhas tratadas · já estava na lista: sim · lista com 1 registro(s)
+
+Lista de eliminação (lab_controle.eliminacoes):
+  chave d46bbcdbeb0c… (pseudônimo HMAC) · pedido em 2026-10-16 01:05 · executado em 2026-10-16 01:05
+    origem.clientes                               0 linha(s)
+    origem.pedidos (sem pessoa)                   1 linha(s)
+    origem.navegacao                              2 linha(s)
+    log.mudancas (dados apagados)                 1 linha(s)
+    log.navegacao (tópico)                        2 linha(s)
+    leitores.visitas_eventos                      2 linha(s)
+    leitores.por_cliente_eventos                  2 linha(s)
+    bronze.clientes                               0 linha(s)
+    bronze.pedidos (sem pessoa)                   1 linha(s)
+    bronze.pedidos_lote (sem pessoa)              0 linha(s)
+    bronze.navegacao                              2 linha(s)
+    qualidade.quarentena                          0 linha(s)
+    silver.clientes                               0 linha(s)
+    silver.pedidos (sem pessoa)                   1 linha(s)
+    silver.navegacao                              2 linha(s)
+    controle.anonimizados (pedidos sem pessoa)    1 linha(s)
+
+Pedidos que ficaram sem pessoa (lab_controle.anonimizados): 106
+Histórico do Delta: versão mais antiga legível de lab_origem.clientes: v0 · sem a cliente
+Arquivos do repositório com os termos (fora de dados/): nenhum
+Exceção registrada: dados/dia1 é a entrada fictícia do laboratório e continua com a cliente; a lista de
+eliminação é reaplicada sempre que essa entrada ou uma cópia antiga for carregada de novo (Missão 9).
