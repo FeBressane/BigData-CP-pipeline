@@ -1,11 +1,11 @@
-Missão 6 · segurança, pseudônimo e papéis · verificado em 2026-10-15 23:57
+Missão 6 · segurança, pseudônimo e papéis · verificado em 2026-10-16 00:21
 
 [OK] 1. Busca por @, CPFs, telefones e IPs na silver: nenhuma ocorrência
       3 tabelas, 3 versões lidas por time travel · ocorrências: 0 · colunas proibidas: nenhuma
 [OK] 2. Mesma chave gera os mesmos pseudônimos; outra chave muda todos
       mesma chave, duas vezes: iguais · outra chave: 7 de 7 mudaram · clientes: 6/6 linhas com o pseudônimo certo · pedidos: 11/11 linhas com o pseudônimo certo · navegacao: 8/8 linhas com o pseudônimo certo · cliente 1 com o mesmo cliente_ps em: clientes, pedidos, navegacao
 [OK] 3. O valor da chave não aparece em lugar nenhum do repositório
-      55 arquivos lidos · com a chave: nenhum · a chave fica em: secret scope lab_bd
+      56 arquivos lidos · com a chave: nenhum · a chave fica em: secret scope lab_bd
 
 Silver (colunas atuais):
   clientes   cliente_ps, nascimento, cidade, atualizado_em
@@ -29,5 +29,5 @@ Papéis (SHOW GRANTS por schema):
   lab_log        só o dono
   lab_origem     só o dono
   lab_qualidade  só o dono
-  lab_silver     só o dono
-  lab_gold       só o dono
+  lab_silver     account users: SELECT; account users: USE SCHEMA
+  lab_gold       account users: SELECT; account users: USE SCHEMA
