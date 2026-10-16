@@ -11,6 +11,24 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 | Gabriel Teixeira Machado | 551570 |
 | Felipe Cavalcante Bressane | 97688 |
 
+## Peças da entrega
+
+Cada peça aponta onde está no repositório e qual número a comprova (os números saem de `evidencias/`).
+
+| # | Peça | Onde está | Número que comprova |
+|---|---|---|---|
+| 0 | Origem no estado do dia 1 e repositório | `ingestao/00_criar_origem`, `dados/dia1/`, este README | 6 clientes, 8 pedidos, 8 eventos, receita paga R$ 655,00 (`evidencias/missao0.txt`) |
+| 1 | Carga incremental com marca-d'água | `ingestao/01_carga_incremental`, `lab_controle.marca_dagua` | 2ª execução lê 0 linhas; dia 2 lê 4; bronze 7 clientes, 9 pedidos, R$ 750,90 (`missao1.txt`) |
+| 2 | Log de mudanças (Trilha B, CDF) | `ingestao/02a_preparar_captura`, `02_sincronizar`, `lab_log.mudancas` | 5 eventos em ordem; bronze 6 clientes sem a cliente 5, 9 pedidos, R$ 750,90; reaplicar dá o mesmo (`missao2.txt`) |
+| 3 | Tópico com vários leitores e offsets | `ingestao/03_simular`, `03_comum`, `lab_log.navegacao`, `lab_leitores` | leitor derrubado no 4º evento retoma sem contar duas vezes; /carrinho com 2 visitas; 8 eventos no tópico (`missao3.txt`) |
+| 4 | Contrato, validação e quarentena | `contratos/*.yaml`, `qualidade/04b_validar`, `lab_qualidade.quarentena` | 2 aceitas, 5 em quarentena com 5 motivos; silver 11 pedidos, R$ 844,90 contra R$ 932,90 sem contrato (`missao4.txt`) |
+| 5 | Governança: acordo, catálogo e regra como código | `governanca/acordo.yaml`, `catalogo.md`, `05a_governanca`, `05c_varredor` | sem retenção o pipeline para; varredor acha e-mail no 104, telefone no 106 e IP nos 8 eventos (`missao5.txt`) |
+| 6 | Segurança: pseudônimo, chave, papéis | `seguranca/matriz.md`, `trajeto_cpf.md`, `06a`–`06d` | 0 ocorrências de dado pessoal na silver; outra chave muda 7 de 7 pseudônimos; chave em 0 de 56 arquivos (`missao6.txt`) |
+| 7 | Visão de consumo e K-anonimato | `privacidade/finalidades.md`, `07a_visao_consumo`, `lab_gold.receita_por_cidade` | K = 1 com 4 combinações únicas; K = 2: Santos R$ 545,00, Sorocaba R$ 95,90, total R$ 844,90 (`missao7.txt`) |
+| 8 | Direito ao esquecimento | `privacidade/moradas.md`, `08a_esquecer`, `lab_controle.eliminacoes` | 0 ocorrências da cliente 5 em 28 tabelas; 6 eventos, 11 pedidos, R$ 844,90; 2ª execução trata 0 linhas (`missao8.txt`) |
+| 9 | Resiliência: cópias, reconstruir e ensaio | `resiliencia/plano.md`, `09a`–`09d` | bronze apagada e de volta com os mesmos números, sem a cliente 5; RTO real 17,2 min contra 15 prometidos (`missao9.txt`) |
+| 10 | Desenho e pacote final | `arquitetura/Estrutura.png` e `Fluxo.png` (fontes `.excalidraw`), este README | as tags `entrega-1` a `entrega-5` no GitHub |
+
 ## Escolhas do grupo
 
 | Item | Escolha | Motivo |
@@ -20,7 +38,7 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 | Banco da origem | Tabelas Delta no schema `workspace.lab_origem` | Simula o banco transacional da loja |
 | Camadas de destino | Tabelas Delta em `lab_bronze`, `lab_silver` e `lab_gold` | Mesmo catálogo, schemas separados por camada |
 | Estado do pipeline | Schema `lab_controle` (marcas-d'água, offsets) | Estado fora do código |
-| Desenho | Excalidraw (`arquitetura/estrutura.excalidraw` e `Estrutura.png`) | Desenho colaborativo no navegador, com fonte versionada |
+| Desenho | Excalidraw: visão de estrutura (`arquitetura/estrutura.excalidraw` → `Estrutura.png`) e visão de fluxo (`fluxo.excalidraw` → `Fluxo.png`) | Desenho no navegador, com o arquivo-fonte versionado ao lado da imagem |
 | Trilha de captura de mudanças | **Trilha B**: Change Data Feed do Delta nas tabelas da origem | O próprio banco registra cada mudança na ordem do commit; nenhuma mudança escapa, mesmo feita por fora do aplicativo |
 | Log de mudanças | Tabela `lab_log.mudancas` (só anexa) | Sequência, tabela, operação, chave e dados de cada evento |
 | Tópico de navegação | Tabela `lab_log.navegacao` (só anexa), Trilha A sem broker | O Kafka não é alcançável a partir da Free Edition; uma tabela só-anexa com offsets por leitor tem o mesmo comportamento |
@@ -104,7 +122,16 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
 
     `resiliencia/09b_reconstruir` refaz só silver e gold a partir da bronze, a qualquer momento.
 
-_Os próximos passos entram a cada missão._
+### Roteiro da apresentação ao vivo (≈ 10 min)
+
+1. **Mostrar o desenho** (`arquitetura/Estrutura.png`): origem → log e tópico → bronze → validação → silver → gold,
+   com a chave, os papéis e as cópias.
+2. **Rodar o pipeline:** `qualidade/04b_validar` (regra como código passa, silver protegida, 11 pedidos, R$ 844,90).
+3. **Esquecer um cliente ao vivo:** `privacidade/08a_esquecer` com o cliente 5 (mostra 0 linhas: já esquecido, e a
+   lista com 1 registro) ou, num ambiente recriado do zero, com um cliente novo. Mostrar `lab_controle.eliminacoes`.
+4. **Reconstruir a silver ao vivo:** `resiliencia/09b_reconstruir` (apaga silver e gold e recria; mesmos números).
+5. **Fechar com a visão de fluxo** (`arquitetura/Fluxo.png`): a vida do CPF, do cadastro à eliminação, e o que o
+   ensaio do desastre mostrou (RTO real 17,2 min × 15 prometidos, e por quê).
 
 ## Decisões técnicas
 
@@ -257,7 +284,7 @@ governanca/     acordo.yaml, catalogo.md, regras como código
 seguranca/      matriz.md, pseudonimização, camada silver
 privacidade/    visão de consumo, moradas.md, esquecer
 resiliencia/    plano.md, cópia de segurança, reconstruir
-arquitetura/    fonte e imagem do desenho
+arquitetura/    estrutura e fluxo: fontes .excalidraw e imagens .png
 evidencias/     números de cada missão
 ```
 
