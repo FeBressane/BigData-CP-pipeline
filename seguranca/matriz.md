@@ -11,7 +11,7 @@ sua proteção.
 | Na silver | mantido | mantido | mantido | **pseudônimo** (`cliente_ps`) ou **removido**; quase-identificador fica só com finalidade registrada (Missão 7) | removido |
 | Na gold | mantido | mantido | agregado | só agregado, nunca por pessoa | nunca |
 | Na quarentena | mantido | mantido | mantido | **máscara** (removido) ou pseudônimo | nunca |
-| Quem lê | qualquer um | qualquer um do time de dados | papel com aprovação do dono | bronze: só o papel `lab_pipeline`; analista (`lab_analistas`) lê a silver e a gold | ninguém sem aprovação do dono e do jurídico |
+| Quem lê | qualquer um | qualquer um do time de dados | papel com aprovação do dono | bronze: só o papel de pipeline; o analista lê a silver e a gold | ninguém sem aprovação do dono e do jurídico |
 | Chaves e segredos | — | — | — | chave do pseudônimo fora do código e do repositório (secret scope) | chave separada, com rotação |
 | Logs e evidências | pode aparecer | pode aparecer | sem valores individuais | **nunca** o valor: só onde está e quantas linhas | nunca |
 | Retenção | do conjunto | do conjunto | do conjunto | prazo obrigatório no acordo (regra como código) | prazo obrigatório e menor possível |
@@ -49,10 +49,10 @@ sua proteção.
 
 ## Papéis
 
-| Papel | Grupo | Lê | Não lê |
+| Papel | Principal | Lê | Não lê |
 |---|---|---|---|
-| Pipeline | `lab_pipeline` | origem, log, bronze, controle, qualidade, silver, gold | |
-| Analista | `lab_analistas` | silver e gold | origem, log, bronze, controle, quarentena e varredura |
+| Pipeline | grupo `lab_pipeline` ou, na Free Edition, o dono dos schemas | origem, log, bronze, controle, qualidade, silver, gold | |
+| Analista | grupo `lab_analistas` ou, na Free Edition, `account users` | silver e gold | origem, log, bronze, controle, quarentena e varredura |
 
 As permissões são código (`seguranca/06c_papeis`): `GRANT` para o que cada papel pode e `REVOKE` do analista em
 tudo que tem dado pessoal em claro. O notebook mostra as permissões que ficaram valendo e para se o analista ainda

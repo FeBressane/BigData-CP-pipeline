@@ -184,12 +184,15 @@ _Os próximos passos entram a cada missão._
   devolva a versão sem proteção. A verificação lê todas as versões da silver.
 - **Quarentena mascarada.** A linha reprovada continua na quarentena, mas os campos pessoais aparecem mascarados ou
   como pseudônimo: quem corrige precisa saber o motivo e a linha, não o dado.
-- **Papéis: como a separação é garantida.** Dois grupos do Unity Catalog. `lab_pipeline` tem todas as permissões
-  nos schemas do laboratório; `lab_analistas` tem só `USE SCHEMA` e `SELECT` em `lab_silver` e `lab_gold`. O notebook
-  `seguranca/06c_papeis` aplica os `GRANT` e faz `REVOKE` do analista em origem, log, bronze, controle, qualidade e
-  leitores, mostra o que ficou valendo (inclusive permissões herdadas do catálogo) e para se o analista ainda lê a
-  bronze. As permissões ficam no código, então refazer o ambiente refaz os papéis. Na Free Edition há um usuário só,
-  dono e administrador, que enxerga tudo; a separação vale para quem entra nos grupos.
+- **Papéis: como a separação é garantida.** As permissões são código (`seguranca/06c_papeis`), aplicadas no Unity
+  Catalog. O analista recebe só `USE SCHEMA` e `SELECT` em `lab_silver` e `lab_gold`, e leva `REVOKE` em origem, log,
+  bronze, controle, qualidade e leitores; o pipeline é quem lê a bronze. O plano era usar dois grupos,
+  `lab_pipeline` e `lab_analistas`, mas o Unity Catalog só aceita grupos da conta, e na Free Edition o grupo criado
+  pelo workspace é local (`PRINCIPAL_DOES_NOT_EXIST`). Por isso o notebook cai no plano B: o analista é
+  `account users`, ou seja, todo usuário da conta que não seja o dono só lê silver e gold; o pipeline é o dono dos
+  schemas, que roda os notebooks e os jobs. O notebook mostra as permissões que ficaram valendo, inclusive as herdadas
+  do catálogo, e para se o analista conseguir ler alguma camada com dado em claro. Numa conta com console de conta,
+  os mesmos comandos rodam com os dois grupos (plano A), sem mudar o código.
 - **Trajeto do CPF.** Real na origem, no log e na bronze; mascarado na quarentena; ausente na silver, na gold, no
   varredor, no catálogo e nas evidências (`seguranca/trajeto_cpf.md`). A verificação mede cada etapa. A evidência
   da Missão 2 mostrava o e-mail novo da cliente 3; passou a mostrar só que ele foi atualizado.
