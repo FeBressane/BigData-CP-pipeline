@@ -240,6 +240,9 @@ _Os próximos passos entram a cada missão._
   carregar o dia 3 e reconstruir, cronometrando cada etapa (`lab_controle.ensaios`). A lista vem depois do log porque
   a cópia do dia 1 ainda tem a cliente 5. A reaplicação usa a chave do evento de exclusão, já que o esquecer apagou os
   dados dele.
+- **RTO real × prometido.** O ensaio levou 17,2 min contra 15 min prometidos: 72 s para restaurar a bronze e 16 min
+  para reconstruir, quase todos na validação rodada num contexto novo (`dbutils.notebook.run`, workspace sob carga).
+  A recuperação deu os mesmos números; o prazo foi revisto para 20 min e a correção está em `resiliencia/plano.md`.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
