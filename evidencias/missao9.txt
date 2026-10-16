@@ -1,0 +1,25 @@
+Missão 9 · resiliência · verificado em 2026-10-16 02:25
+
+[OK] 1. A cliente 5 (presente na cópia do dia 1) não reaparece em nenhuma camada
+      19 tabelas e visões em 7 schemas · ocorrências: nenhuma · a cópia do dia 1 tem a cliente: sim (por isso a lista é reaplicada)
+[OK] 2. Números iguais à Missão 8: 6 clientes, 11 pedidos, 6 eventos, R$ 844,90, mesma visão
+      6 clientes · 11 pedidos · 6 eventos · R$ 844,90 · visão igual
+[OK] 3. Tempo medido = RTO real; comparado com o prometido e a diferença registrada
+      RTO real 1033 s (17.2 min) · prometido 15 min · folga de -2.2 min
+
+Ensaio do desastre de 2026-10-16 02:03 (lab_controle.ensaios):
+  1. apagar a bronze                     2.3 s   4 tabelas apagadas
+  2. restaurar a cópia do dia 1          9.4 s   {'clientes': 'da tabela de cópia', 'pedidos': 'da tabela de cópia', 'navegacao': 'da tabel
+  3. reaplicar log e tópico             14.8 s   5 eventos do log, 6 do tópico
+  4. reaplicar lista de eliminação      41.1 s   {'d46bbcdbeb0c…': 3}
+  5. carregar o dia 3                    4.5 s   7 linhas no lote
+  6. reconstruir silver e gold         961.2 s   {'apagar silver e gold': 1.8, 'validar e proteger (silver)': 938.2, 'visão de consumo (gol
+  total (RTO real)                    1033.3 s
+
+Cópias (3-2-1-1-0, detalhe em resiliencia/plano.md):
+  bronze do dia 1: {"clientes": 6, "pedidos": 8, "navegacao": 8} · em lab_copias.bronze_dia1_* (Delta, appendOnly) e /Volumes/workspace/lab_copias/cofre/dia1 (Parquet)
+  offsets guardados com a cópia: log de mudanças 0, tópico 0
+  chave: secret scope lab_bd + arquivo na pasta pessoal (existe) + cópia offline do dono (gerenciador de senhas)
+
+Ordem da recuperação: restaurar a cópia, reaplicar log e tópico, reaplicar a lista de eliminação,
+carregar o dia 3, reconstruir silver e gold. Sem a lista, a cliente 5 voltaria com a cópia do dia 1.
