@@ -184,9 +184,22 @@ def esquecer(catalogo: str, cliente_id: int, limpar: bool = True) -> dict:
 
 
 def reaplicar_lista(catalogo: str) -> dict:
-    """Depois de restaurar uma cópia: trata de novo as moradas de cada pseudônimo da lista (Missão 9)."""
-    registrar_pseudonimo()
+    """Depois de restaurar uma cópia: trata de novo as moradas de cada cliente da lista (Missão 9). A lista só tem o
+    pseudônimo; o comando calcula o pseudônimo de cada id que existe nas tabelas e trata os que batem."""
+    chave = obter_chave()
+    lista = {r.chave_ps for r in spark.sql(f"SELECT chave_ps FROM {catalogo}.lab_controle.eliminacoes").collect()}
+    ids = set()
+    for tabela, col in [("lab_origem.clientes", "id"), ("lab_origem.pedidos", "cliente_id"),
+                        ("lab_origem.navegacao", "cliente_id"), ("lab_bronze.clientes", "id"),
+                        ("lab_bronze.pedidos", "cliente_id"), ("lab_bronze.pedidos_lote", "cliente_id"),
+                        ("lab_bronze.navegacao", "cliente_id"), ("lab_log.navegacao", "cliente_id"),
+                        ("lab_log.mudancas", "chave")]:
+        if _existe(f"{catalogo}.{tabela}"):
+            ids |= {r[0] for r in spark.sql(f"SELECT DISTINCT try_cast({col} AS INT) FROM {catalogo}.{tabela}").collect()
+                    if r[0] is not None}
     total = {}
-    for r in spark.sql(f"SELECT chave_ps FROM {catalogo}.lab_controle.eliminacoes").collect():
-        total[r.chave_ps[:12] + "…"] = tratar_moradas(catalogo, r.chave_ps)
+    for i in sorted(ids):
+        ps = pseudonimo_de(str(i), chave)
+        if ps in lista:
+            total[ps[:12] + "…"] = tratar_moradas(catalogo, ps, i)
     return total

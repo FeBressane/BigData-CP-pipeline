@@ -96,6 +96,14 @@ Pipeline de dados de uma loja online, da ingestão à proteção, construído em
     3. `governanca/05c_varredor` (refaz a saída do varredor sem os eventos dela)
     4. `privacidade/08b_verificar_missao8` (confere, roda o esquecer de novo e grava `evidencias/missao8.txt`)
 
+11. Missão 9:
+    1. `resiliencia/09a_copia_dia1` (cópia da bronze do dia 1, offsets e cópia da chave)
+    2. `resiliencia/09c_ensaio_desastre` com o widget "Confirmo apagar a bronze" = `sim` (apaga, restaura, reaplica
+       log, tópico e lista, carrega o dia 3, reconstrói e cronometra)
+    3. `resiliencia/09d_verificar_missao9` (confere e grava `evidencias/missao9.txt`)
+
+    `resiliencia/09b_reconstruir` refaz só silver e gold a partir da bronze, a qualquer momento.
+
 _Os próximos passos entram a cada missão._
 
 ## Decisões técnicas
@@ -225,6 +233,13 @@ _Os próximos passos entram a cada missão._
   restaurar uma cópia, o comando reaplica a lista calculando o pseudônimo de cada id da cópia.
 - **Histórico do Delta.** Versões antigas e o Change Data Feed também guardam o dado. O comando roda `VACUUM`; no
   serverless não dá para encurtar o prazo de retenção, então as versões antigas somem em até 7 dias.
+- **Resiliência (Missão 9).** RPO e RTO de cada peça e o esquema 3-2-1-1-0 estão em `resiliencia/plano.md`. A cópia
+  da bronze do dia 1 fica em tabelas Delta `appendOnly` e em Parquet num volume, com o offset do log e do tópico
+  guardado junto. Silver e gold não têm cópia: o comando `reconstruir` recria as duas da bronze.
+- **Ensaio do desastre.** Apagar a bronze, restaurar a cópia, reaplicar log e tópico, reaplicar a lista de eliminação,
+  carregar o dia 3 e reconstruir, cronometrando cada etapa (`lab_controle.ensaios`). A lista vem depois do log porque
+  a cópia do dia 1 ainda tem a cliente 5. A reaplicação usa a chave do evento de exclusão, já que o esquecer apagou os
+  dados dele.
 - **Moradas do log.** O log guarda a linha excluída (o evento de exclusão leva a imagem "antes") e o
   Delta guarda versões antigas da origem e da bronze. Os dois entram no inventário de moradas da Missão 8.
 
