@@ -1,0 +1,34 @@
+Missão 7 · pseudônimo não é anônimo, visão de consumo · verificado em 2026-10-16 00:55
+
+[OK] 1. 4 combinações cidade + faixa etária com uma pessoa só
+      5 combinações · K = 1 · 4 com uma pessoa só
+[OK] 2. K = 2: Santos R$ 545,00 (3), Sorocaba R$ 95,90 (2), Campinas suprimida (1)
+      Santos: R$ 545,00 (3) · Sorocaba: R$ 95,90 (2) · outras (suprimidas + sem cliente): R$ 204,00 · Campinas tem 1 cliente e não aparece pelo nome
+[OK] 3. Total geral continua R$ 844,90 (inclui a suprimida e os R$ 159,00 do pedido 106)
+      soma da visão: R$ 844,90 · pedidos pagos sem cliente (pedido 106): R$ 159,00
+[OK] 4. Com K = 3, Sorocaba também é suprimida
+      Santos: R$ 545,00 · outras: R$ 299,90 · total R$ 844,90
+
+Medição de K (lab_silver.clientes, quase-identificadores cidade + faixa_etaria):
+  cidade      faixa     pessoas
+  Campinas    35–44     1
+  Santos      35–44     1
+  Sorocaba    25–34     1
+  Sorocaba    45–54     1
+  Santos      25–34     2
+  K = 1: há pessoas sozinhas na sua combinação. Quem souber a cidade e a idade de alguém
+  acha a linha dela, mesmo sem nome e com pseudônimo. Por isso a visão de consumo agrega e suprime.
+
+Visão gold lab_gold.receita_por_cidade (K = 2):
+  cidade                                        clientes  receita paga
+  Santos                                               3  R$ 545,00
+  Sorocaba                                             2  R$ 95,90
+  (outras: cidades com menos de K clientes e pedidos sem cliente)        —  R$ 204,00
+
+Campos pessoais na silver e finalidade (colunas atuais de clientes: cliente_ps, faixa_etaria, cidade, atualizado_em):
+  clientes.id          pseudonimo   ligar pedidos e navegação ao mesmo cliente sem identificá-lo
+  clientes.nascimento  faixa_etaria público por faixa etária; a data exata não tem uso, então só a faixa entra na silver
+  clientes.cidade      manter       receita e público por cidade (visão gold receita_por_cidade, com limiar K)
+  navegacao.cliente_id  pseudonimo   visitas por cliente logado (leitor por_cliente)
+  pedidos.cliente_id  pseudonimo   contar clientes e ligar o pedido à cidade do cliente
+  campos pessoais na silver sem finalidade: nenhum
